@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { toProductDTO } from "@/lib/products";
+import { parseTags, toProductDTO } from "@/lib/products";
 import type { ProductDTO } from "@/lib/types";
 
 export const FEED_BATCH_SIZE = 15;
@@ -10,40 +10,106 @@ type GetFeedBatchOptions = {
   limit?: number;
 };
 
-// Phase 3 placeholder ranking: viralScore plus a random jitter, with
-// already-seen products pushed to the end (and only recycled once the
-// unseen pool runs out). Phase 7 swaps the scoring step for the full
-// FeedScore formula (categoryMatch + tagMatch + viralScore +
-// globalEngagementScore + noveltyBonus + randomExploration -
-// alreadySeenPenalty) without changing this function's signature.
+const NOVELTY_WINDOW_DAYS = 14;
+const NOVELTY_MAX_BONUS = 20;
+const RANDOM_EXPLORATION_MAX = 15;
+const ALREADY_SEEN_PENALTY = 35;
+const ENGAGEMENT_SCORE_CAP = 40;
+
+// FeedScore = categoryMatch + tagMatch + viralScore + globalEngagementScore
+//           + noveltyBonus + randomExploration - alreadySeenPenalty
+//
+// Deliberately simple/additive heuristics, no ML - every term below can be
+// tuned or swapped independently:
+// - categoryMatch / tagMatch: how much this user has previously engaged
+//   with this product's category/tags (lib/preferences.ts, updated on every
+//   wishlist add/remove). 0 for anonymous/new users, so the feed still
+//   works without history.
+// - viralScore: editorial "this tends to perform well" signal set by admins.
+// - globalEngagementScore: how much ALL users like/wishlist/click this
+//   product (see getGlobalEngagementScores), log-scaled + capped so a
+//   handful of viral outliers can't drown out everything else.
+// - noveltyBonus: linearly decays to 0 over NOVELTY_WINDOW_DAYS, so newly
+//   added products get a temporary visibility boost while they build up
+//   their own engagement numbers.
+// - randomExploration: small jitter so the feed isn't 100% deterministic.
+// - alreadySeenPenalty: pushes products already shown this session down
+//   rather than hard-excluding them - with a small catalog, a fixed
+//   penalty (not a hard filter) lets the feed recycle once everything
+//   unseen has been shown, instead of running out of content.
 export async function getFeedBatch({
   userId,
   excludeIds,
   limit = FEED_BATCH_SIZE,
 }: GetFeedBatchOptions): Promise<ProductDTO[]> {
-  const [products, wishlistRows] = await Promise.all([
+  const [products, wishlistRows, preference, engagementScores] = await Promise.all([
     prisma.product.findMany({ where: { isActive: true } }),
     userId
       ? prisma.wishlistItem.findMany({ where: { userId }, select: { productId: true } })
       : Promise.resolve([] as { productId: string }[]),
+    userId ? prisma.userPreference.findUnique({ where: { userId } }) : Promise.resolve(null),
+    getGlobalEngagementScores(),
   ]);
 
   const wishlistedIds = new Set(wishlistRows.map((row) => row.productId));
   const excludeSet = new Set(excludeIds);
+  const categoryWeights: Record<string, number> = preference ? JSON.parse(preference.categoryWeights) : {};
+  const tagWeights: Record<string, number> = preference ? JSON.parse(preference.tagWeights) : {};
+  const now = Date.now();
 
-  const score = (viralScore: number) => viralScore + Math.random() * 30;
+  const scored = products.map((product) => {
+    const tags = parseTags(product.tags);
+    const categoryMatch = (categoryWeights[product.category] ?? 0) * 4;
+    const tagMatch = tags.reduce((sum, tag) => sum + (tagWeights[tag] ?? 0), 0) * 2;
+    const ageDays = (now - product.createdAt.getTime()) / (1000 * 60 * 60 * 24);
+    const noveltyBonus = Math.max(0, NOVELTY_MAX_BONUS * (1 - ageDays / NOVELTY_WINDOW_DAYS));
+    const randomExploration = Math.random() * RANDOM_EXPLORATION_MAX;
+    const alreadySeenPenalty = excludeSet.has(product.id) ? ALREADY_SEEN_PENALTY : 0;
+    const globalEngagementScore = engagementScores.get(product.id) ?? 0;
 
-  const unseen = products
-    .filter((p) => !excludeSet.has(p.id))
-    .map((product) => ({ product, score: score(product.viralScore) }))
-    .sort((a, b) => b.score - a.score);
+    const score =
+      categoryMatch +
+      tagMatch +
+      product.viralScore +
+      globalEngagementScore +
+      noveltyBonus +
+      randomExploration -
+      alreadySeenPenalty;
 
-  const seen = products
-    .filter((p) => excludeSet.has(p.id))
-    .map((product) => ({ product, score: score(product.viralScore) }))
-    .sort((a, b) => b.score - a.score);
+    return { product, score };
+  });
 
-  const ranked = [...unseen, ...seen].slice(0, limit);
+  scored.sort((a, b) => b.score - a.score);
 
-  return ranked.map(({ product }) => toProductDTO(product, wishlistedIds.has(product.id)));
+  return scored.slice(0, limit).map(({ product }) => toProductDTO(product, wishlistedIds.has(product.id)));
+}
+
+async function getGlobalEngagementScores(): Promise<Map<string, number>> {
+  const [likeGroups, clickGroups] = await Promise.all([
+    prisma.userProductEvent.groupBy({
+      by: ["productId"],
+      where: { eventType: { in: ["product_like", "product_wishlist_add"] } },
+      _count: { _all: true },
+    }),
+    prisma.affiliateClick.groupBy({
+      by: ["productId"],
+      _count: { _all: true },
+    }),
+  ]);
+
+  // Affiliate clicks are weighted higher than likes - they're a stronger
+  // "actually wants to buy this" signal than a tap-to-save gesture.
+  const weighted = new Map<string, number>();
+  for (const group of likeGroups) {
+    weighted.set(group.productId, (weighted.get(group.productId) ?? 0) + group._count._all * 2);
+  }
+  for (const group of clickGroups) {
+    weighted.set(group.productId, (weighted.get(group.productId) ?? 0) + group._count._all * 3);
+  }
+
+  const scores = new Map<string, number>();
+  for (const [productId, value] of weighted) {
+    scores.set(productId, Math.min(ENGAGEMENT_SCORE_CAP, Math.log2(value + 1) * 8));
+  }
+  return scores;
 }

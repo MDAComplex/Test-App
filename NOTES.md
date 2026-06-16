@@ -191,3 +191,36 @@ Route-Groups nicht (Klammerordner werden nicht Teil des Pfads).
   zu `/admin/products`, Zeile erscheint in DB), Aktiv/Inaktiv togglen,
   Bearbeiten-Formular zeigt korrekt vorausgefuellte Werte, Loeschen entfernt
   die Zeile aus der DB.
+
+## Phase 7 – Feed-Algorithmus
+
+`lib/feed.ts` ersetzt die Phase-3-Platzhalter-Sortierung durch die volle, im
+Auftrag vorgegebene Formel (Kommentare direkt im Code, hier nur die
+Kurzfassung):
+
+`FeedScore = categoryMatch + tagMatch + viralScore + globalEngagementScore + noveltyBonus + randomExploration - alreadySeenPenalty`
+
+- **categoryMatch / tagMatch**: `lib/preferences.ts` speichert je Nutzer
+  `UserPreference.categoryWeights`/`tagWeights` (JSON-Maps). Jeder
+  Wishlist-Add/-Remove (`/api/wishlist`) erhoeht/verringert das Gewicht der
+  betroffenen Kategorie um 1 und jedes Tags um 1 (floor bei 0). Anonyme/neue
+  Nutzer haben leere Maps → Term ist 0, der Feed funktioniert also auch ohne
+  Historie.
+- **viralScore**: direkt aus dem Produkt (Admin-gepflegt).
+- **globalEngagementScore**: aggregiert `product_like`/`product_wishlist_add`-
+  Events (Gewicht 2) und `AffiliateClick`-Eintraege (Gewicht 3, staerkeres
+  Kaufsignal) je Produkt ueber **alle** Nutzer, log-skaliert und auf 40
+  gekappt, damit einzelne virale Ausreisser nicht alles andere verdraengen.
+- **noveltyBonus**: faellt linear von 20 auf 0 ueber 14 Tage seit `createdAt`.
+- **randomExploration**: Zufallswert 0–15, sorgt fuer Abwechslung.
+- **alreadySeenPenalty**: feste Strafe (35) fuer Produkte in der vom Client
+  mitgeschickten `exclude`-Liste – bewusst kein Hard-Filter, damit der Feed
+  bei nur ~34 Seed-Produkten recyceln kann statt leerzulaufen.
+
+Per curl verifiziert: ein Wishlist-Add fuer ein Gaming-Produkt erzeugt sofort
+einen `UserPreference`-Eintrag (`{"Gaming":1}` + die zugehoerigen Tags), und
+ein anschliessender `/api/feed`-Abruf rankt ein zweites Gaming-Produkt
+sichtbar weiter oben, als es allein nach `viralScore` der Fall waere – die
+Personalisierung wirkt additiv (sie kann viralScore/Engagement nicht
+komplett ueberschreiben), genau wie eine einfache, nicht-ML-basierte
+Heuristik es tun sollte.
