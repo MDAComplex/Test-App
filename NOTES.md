@@ -130,3 +130,19 @@ gehasht, niemals im Klartext oder im Client-Bundle.
   Share, Scroll Next/Previous) und end-to-end smoke-getestet (curl gegen
   einen lokalen Dev-Server, inkl. ungueltigem `eventType` → `{ok:false}`
   statt Fehlerstatus, 401 bei anonymem Wishlist-Versuch).
+
+## Phase 5 – Wishlist
+
+- `/wishlist` (Server Component): nicht eingeloggte Visitors sehen einen
+  Hinweis ("Erstelle einen kostenlosen Account...") statt der Liste, nie das
+  Wort "Warenkorb". Eingeloggte Nutzer sehen ihre gespeicherten Produkte
+  (Bild/Poster, Name, Preis, Shopname), je mit "Zum Shop"-Link (`/go/[id]`,
+  neuer Tab) und "Entfernen".
+- Statistik-Kachel (`components/wishlist/wishlist-view.tsx`, Client-Komponente
+  fuer optimistisches Entfernen): Gesamtwert ("Deine Wishlist ist X € wert"),
+  Anzahl, Top-Kategorien (haeufigste 3 unter den gespeicherten Produkten) und
+  ein optionales, rein kosmetisches Rang-Label nach Anzahl gestaffelt:
+  1–4 = "Wishlist Starter", 5–11 = "Style Scout", ab 12 = "Trend Hunter"
+  (frei gewaehlte Schwellenwerte, kein echtes Ranking-System).
+- End-to-end smoke-getestet: Registrierung → Login → Wishlist-Add via API →
+  `/wishlist` zeigt Summe + Rang-Label korrekt.
