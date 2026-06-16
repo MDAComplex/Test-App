@@ -262,3 +262,177 @@ Heuristik es tun sollte.
   Smoke-Test per curl gegen einen lokalen Dev-Server: `manifest.json`,
   beide Icons und alle vier Rechtsseiten antworten mit `200`; der
   Affiliate-Hinweis-Text wurde per `grep` im HTML-Response verifiziert.
+
+---
+
+# Abschlussbericht
+
+Alle acht Phasen (0–8) sind abgeschlossen. `npm run build` und `npm run lint`
+laufen fehlerfrei (19 Routen, siehe Routenliste unten), nach jeder Phase
+wurde committet und gepusht. Dieser Abschnitt fasst den fertigen Stand
+zusammen.
+
+## 1. Was wurde gebaut
+
+Eine vollstaendige Next.js-16-App ("TikTok fuer Produkte"): vertikaler
+Snap-Feed mit Bild/Video-Produkten, Doppeltipp-zu-Wishlist, eine echte
+Wishlist-Seite mit Statistiken, serverseitige Affiliate-Redirects mit
+Tracking, ein additiver (nicht-ML) Personalisierungs-Feed-Algorithmus,
+Auth (Registrierung/Login, USER/ADMIN-Rollen), ein Admin-Backoffice fuer
+Produktpflege, vier rechtliche Platzhalterseiten und PWA-Grundausstattung
+(Manifest + Icons). Kein Checkout, kein Warenkorb, keine Zahlungs-Routen –
+wie im Auftrag verlangt.
+
+## 2. Neue Routen
+
+Konsument (Route-Group `(shop)`, 430px-Phone-Frame, schwarzes Theme):
+- `/` – Landing-Page ("Feed starten")
+- `/login`, `/register`
+- `/feed` – der eigentliche Swipe-/Scroll-Feed
+- `/wishlist` – gespeicherte Produkte + Statistik
+- `/profile` – eigene Statistik, Admin-Link (falls Rolle ADMIN), Logout,
+  Links zu den vier Rechtsseiten
+- `/impressum`, `/datenschutz`, `/agb`, `/affiliate-hinweis`
+
+Redirect/Tracking:
+- `/go/[productId]` – einziger Ort, der die echte Affiliate-URL aufloest,
+  trackt Klick + Event, leitet sofort per 302 weiter
+
+Admin (ausserhalb der Phone-Frame-Gruppe, volle Breite, nur Rolle ADMIN):
+- `/admin/products`, `/admin/products/new`, `/admin/products/[id]`
+
+API (vom Client genutzt, kein direkter Seitenaufruf):
+- `GET /api/feed`, `POST/DELETE/GET /api/wishlist`, `POST /api/events`,
+  `POST /api/register`, `GET/POST /api/auth/[...nextauth]` (Auth.js)
+
+## 3. Wie der Feed funktioniert
+
+`lib/feed.ts` rankt alle aktiven Produkte pro Anfrage nach einer additiven
+Formel: `categoryMatch + tagMatch + viralScore + globalEngagementScore +
+noveltyBonus + randomExploration - alreadySeenPenalty`. `category-`/
+`tagMatch` kommen aus den pro Nutzer in `UserPreference` gespeicherten
+Gewichten (steigen/fallen bei jedem Wishlist-Add/-Remove);
+`globalEngagementScore` aggregiert Likes/Wishlist-Adds/Affiliate-Klicks
+**aller** Nutzer (log-skaliert, gekappt); `noveltyBonus` bevorzugt neue
+Produkte 14 Tage lang abnehmend; `randomExploration` sorgt fuer Abwechslung;
+`alreadySeenPenalty` schiebt bereits gezeigte Produkte nach hinten, ohne sie
+hart auszuschliessen (wichtig bei nur ~34 Seed-Produkten). Anonyme/neue
+Nutzer haben leere Praeferenz-Gewichte – der Feed funktioniert auch ganz
+ohne Historie. Details/Konstanten siehe Kommentare direkt in `lib/feed.ts`.
+
+## 4. Bilder & Videos
+
+Platzhalter-Medien, keine eigenen Uploads: Bilder ueber
+`picsum.photos/seed/<slug>/<w>/<h>` (deterministisch, kein API-Key),
+Videos ueber oeffentliche Google-/Blender-Foundation-Sample-Videos. Jedes
+Produkt hat ein `mediaFit` (`cover`/`hybrid`/`contain`/`auto`), das
+`components/feed/product-media.tsx` unterschiedlich rendert (volles Bild,
+verschwommener Hintergrund + scharfes Vordergrundbild, oder zentriert auf
+Schwarz). Nur Slides im Bereich ±1 um den aktiven Index halten ihr
+Video-Element im DOM, und nur der exakt aktive Slide spielt ab – nie zwei
+Videos gleichzeitig.
+
+## 5. Doppeltipp & Wishlist
+
+Doppeltipp auf das Medium fuegt immer hinzu (idempotent, nie ein Entfernen)
+und zeigt eine Herz-Pop-Animation. Der Herz-Button in der Aktionsleiste
+toggelt (hinzufuegen/entfernen) – beide Wege sind dieselbe UI-Geste wie bei
+TikTok "Like" = "Save" und feuern dieselben Event-Paare
+(`product_like`/`unlike` + `product_wishlist_add`/`remove`). Nicht
+eingeloggte Besucher bekommen bei einem Wishlist-Versuch ein Inline-Toast
+mit Link zu `/register` statt eines Fehlers ohne Erklaerung.
+
+## 6. `/go/[productId]`
+
+Der einzige Ort im gesamten Code, an dem `affiliateUrl` gelesen wird – sie
+ist bewusst nicht Teil des an den Client gesendeten `ProductDTO` und damit
+nicht im Page-Source/DevTools sichtbar. Schreibt parallel einen
+`AffiliateClick`-Eintrag (inkl. Referrer) und ein `product_affiliate_click`-
+Event, dann sofortiger 302-Redirect zur echten URL. Tracking-Fehler
+blockieren den Redirect nie; unbekannte Produkt-IDs landen auf `/feed`.
+
+## 7. Getrackte Events
+
+Alle 11 vertraglich geforderten Event-Typen sind verdrahtet und end-to-end
+getestet: `product_view`, `product_visible_2s`, `product_visible_5s`,
+`product_like`, `product_unlike`, `product_wishlist_add`,
+`product_wishlist_remove`, `product_affiliate_click`, `product_share`,
+`product_scroll_next`, `product_scroll_previous`. `POST /api/events`
+validiert `eventType` streng gegen diese Liste, antwortet aber bei jedem
+Fehler trotzdem mit Status 200 (`{ok:false}`) statt einem Fehlerstatus –
+Tracking darf den Feed nie blockieren oder im Network-Tab als rotes
+Request auffallen.
+
+## 8. Admin-Zugang
+
+`prisma/seed.ts` legt ein Admin-Konto an: E-Mail `admin@viralo.shop`,
+Passwort aus `ADMIN_SEED_PASSWORD` (`.env`, Default `ChangeMe123!` – **vor
+echtem Launch aendern**). Nach Login mit diesem Konto erscheint auf
+`/profile` ein "Admin-Bereich"-Link zu `/admin/products`. Schutz in zwei
+Schichten: `proxy.ts` blockt `/admin/*` netzwerkseitig fuer Nicht-Admins,
+und sowohl `app/admin/layout.tsx` als auch jede einzelne Server Action in
+`lib/admin-actions.ts` rufen zusaetzlich selbst `requireAdmin()` auf (per
+curl verifiziert: eine direkt wiederholte Server-Action-Payload eines
+Nicht-Admins wird trotzdem abgewiesen).
+
+## 9. Produktpflege
+
+Unter `/admin/products`: Tabelle aller Produkte (auch inaktive) mit
+Aktiv/Inaktiv-Toggle und Loeschen direkt in der Zeile, sowie "Neu"/
+"Bearbeiten"-Formulare mit allen Feldern aus dem Auftrag (Name,
+Beschreibung, Preis, Kategorie, Bild-URL, Video-URL, Poster-URL, MediaType,
+MediaFit, Affiliate-URL, Shopname, Tags, ViralScore, Aktiv/Inaktiv). Direkt
+ueber Server Actions (`lib/admin-actions.ts`), keine eigene API-Schicht
+dafuer noetig. Alternativ: `npm run db:seed` fuellt/aktualisiert den
+~34-Produkte-Demo-Katalog, `npm run db:studio` oeffnet Prisma Studio fuer
+direkten DB-Zugriff.
+
+## 10. Empfohlene naechste Schritte
+
+- Rechtsseiten (Impressum/Datenschutz/AGB/Affiliate-Hinweis) durch einen
+  Juristen pruefen und mit echten Firmendaten ersetzen, bevor live
+  geschaltet wird.
+- `AUTH_SECRET`/`ADMIN_SEED_PASSWORD` vor jedem Deployment durch echte,
+  zufaellige Werte ersetzen (aktuell Platzhalter in `.env.example`).
+- Von SQLite auf eine Mehrnutzer-faehige DB (z. B. Postgres) wechseln,
+  sobald mehr als ein Prozess gleichzeitig schreiben soll.
+- Echte Produktbilder/-videos und echte Affiliate-Links/Partnerprogramme
+  anbinden (aktuell Platzhalter-Medien + Demo-URLs).
+- Rate-Limiting fuer `/api/events` und `/api/wishlist` ergaenzen, bevor die
+  App oeffentlich erreichbar ist (aktuell keine Begrenzung).
+- Self-Service-Account-Loeschung bauen (in `/datenschutz` als noch fehlend
+  dokumentiert).
+- Feed-Score-Gewichte/Konstanten (`lib/feed.ts`) mit echten Nutzungsdaten
+  kalibrieren, sobald reale Engagement-Zahlen vorliegen.
+
+## Autonome Default-Entscheidungen (Zusammenfassung)
+
+- Next.js 16 + Turbopack + TypeScript + Tailwind v4 statt einer aelteren/
+  anderen Stack-Kombination, weil das Repo komplett leer war.
+- Prisma 7 + SQLite + `better-sqlite3`-Adapter statt eines Server-DBMS, fuer
+  einfaches lokales Setup ohne externe Abhaengigkeit.
+- Auth.js v5 (Credentials + JWT, kein DB-Adapter) statt einer komplexeren
+  OAuth-Loesung, da nur E-Mail/Passwort gefordert war.
+- Anonyme `ww_sid`-Session-Cookies fuer Event-Attribution ohne Account.
+- Server Actions fuer Admin-CRUD, REST-API-Routen fuer nutzerseitige
+  Feed/Wishlist/Event-Aktionen (klare Trennung Backoffice vs. Client-App).
+- Picsum/Google-Sample-Medien statt eigener Uploads/Lizenzbilder.
+- Kosmetische, deterministisch aus `viralScore` abgeleitete Sterne-
+  Bewertung/Bewertungszahl statt eines echten Kommentar-/Bewertungssystems
+  (nach Ruecksprache zu einem geteilten UI-Mockup bewusst auf echte
+  Kommentare verzichtet, siehe Phase-3-Notizen).
+- Drei Bottom-Nav-Tabs (Feed/Wishlist/Profil) statt der fuenf Tabs aus dem
+  geteilten Mockup, da nur diese drei im Auftrag vorgesehen waren.
+- App-Icons per `next/og` `ImageResponse` selbst generiert statt
+  Lizenzgrafiken einzukaufen.
+- Rechtsseiten als bewusst gekennzeichnete Platzhalter statt echter
+  Rechtstexte, da echte Rechtsberatung ausserhalb des Auftragsumfangs liegt.
+
+## Nicht umgesetzt / bewusst ausserhalb des Scopes
+
+Wie im Auftrag als "nicht zu bauen" vorgegeben, wurden folgende Punkte
+absichtlich **nicht** gebaut: native Apps, echter Checkout/Bezahlvorgang,
+Warenkorb, TikTok-Importe, Web-Scraping, ML-basiertes Ranking, ein echtes
+Kommentar-/Bewertungssystem, Datei-Uploads, Creator-Auszahlungen. Zusaetzlich
+noch offen (siehe Punkt 10 oben): echte Rechtstexte, Self-Service-
+Account-Loeschung, Rate-Limiting, Produktions-Secrets/-Datenbank.
