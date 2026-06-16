@@ -224,3 +224,41 @@ sichtbar weiter oben, als es allein nach `viralScore` der Fall waere – die
 Personalisierung wirkt additiv (sie kann viralScore/Engagement nicht
 komplett ueberschreiben), genau wie eine einfache, nicht-ML-basierte
 Heuristik es tun sollte.
+
+## Phase 8 – PWA & Rechtliches
+
+- **Icons**: `public/icon-192.png`/`icon-512.png` wurden ohne neue
+  Abhaengigkeit erzeugt – ueber Next.js' eingebautes `next/og`
+  (`ImageResponse`), per einmaligem, danach geloeschtem Node-Skript im
+  Projektroot ausgefuehrt (schwarzes Quadrat, zentriertes fettes violettes
+  "W", Marke `#7C3AED`).
+- **Manifest**: `public/manifest.json` (Name/Short-Name "Wishlist Wars",
+  `start_url: "/feed"`, `display: "standalone"`, Hintergrund/Theme schwarz,
+  beide Icon-Groessen). `app/layout.tsx` verweist bereits seit Phase 0 per
+  `metadata.manifest` darauf; in Phase 8 ergaenzt um `metadata.icons`
+  (Browser-Favicon/Apple-Touch-Icon auf dieselben PNGs).
+- **Rechtliche Platzhalterseiten** (`components/legal/legal-page.tsx` als
+  gemeinsames Geruest mit Zurueck-Link, Titel und gut sichtbarem gelben
+  Banner "Platzhalter – muss vor echtem Launch juristisch geprüft werden."):
+  - `/impressum`: Platzhalter-Anbieterangaben, Hinweis dass Wishlist Wars
+    selbst nichts verkauft.
+  - `/datenschutz`: welche Daten verarbeitet werden (Account-Daten, anonyme
+    `ww_sid`-Session, Interaktionsdaten), Affiliate-Klick-Tracking,
+    **Hinweis auf Moeglichkeit der Account-Loeschung** (aktuell per
+    Kontakt-E-Mail, kein Self-Service-Loeschbutton im MVP).
+  - `/agb`: kein eigener Verkauf/Checkout, Kaufvertrag/Versand/Widerruf
+    laufen ausschliesslich ueber den externen Shop, Preise/Verfuegbarkeit
+    bei externen Shops jederzeit aenderbar und nicht in Echtzeit
+    synchronisiert.
+  - `/affiliate-hinweis`: enthaelt woertlich die geforderte Formulierung
+    "Wir erhalten ggf. eine Provision, wenn du über unsere Links kaufst.
+    Für dich ändert sich der Preis nicht.", plus Hinweis dass die
+    Produktreihenfolge nicht von der Provisionshoehe abhaengt.
+  - Alle vier Seiten liegen in der `(shop)`-Route-Group (Phone-Frame +
+    schwarzes Theme bleiben erhalten) und sind von `/profile` aus unter
+    einer neuen "Rechtliches"-Sektion verlinkt.
+- `npm run build` und `npm run lint` liefen nach den Aenderungen fehlerfrei
+  durch (alle vier Rechtsseiten werden als statische Routen `○` gebaut).
+  Smoke-Test per curl gegen einen lokalen Dev-Server: `manifest.json`,
+  beide Icons und alle vier Rechtsseiten antworten mit `200`; der
+  Affiliate-Hinweis-Text wurde per `grep` im HTML-Response verifiziert.

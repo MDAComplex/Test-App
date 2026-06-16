@@ -51,7 +51,19 @@ export default async function ProfilePage() {
         </Link>
       )}
 
-      <div className="mt-3">
+      <div className="mt-8">
+        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+          Rechtliches
+        </p>
+        <div className="mt-2 flex flex-col gap-2 text-sm text-zinc-400">
+          <Link href="/impressum">Impressum</Link>
+          <Link href="/datenschutz">Datenschutz</Link>
+          <Link href="/agb">AGB</Link>
+          <Link href="/affiliate-hinweis">Affiliate-Hinweis</Link>
+        </div>
+      </div>
+
+      <div className="mt-6">
         <LogoutButton />
       </div>
     </div>
