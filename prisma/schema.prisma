@@ -1,0 +1,151 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum MediaType {
+  image
+  video
+}
+
+enum MediaFit {
+  cover
+  hybrid
+  contain
+  auto
+}
+
+enum EventType {
+  product_view
+  product_visible_2s
+  product_visible_5s
+  product_like
+  product_unlike
+  product_wishlist_add
+  product_wishlist_remove
+  product_affiliate_click
+  product_share
+  product_scroll_next
+  product_scroll_previous
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String
+  name          String?
+  role          Role     @default(USER)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  wishlistItems   WishlistItem[]
+  events          UserProductEvent[]
+  affiliateClicks AffiliateClick[]
+  preferences     UserPreference?
+
+  @@map("users")
+}
+
+model Product {
+  id            String     @id @default(cuid())
+  name          String
+  description   String
+  price         Float
+  category      String
+  imageUrl      String
+  videoUrl      String?
+  posterUrl     String?
+  mediaType     MediaType  @default(image)
+  mediaFit      MediaFit   @default(hybrid)
+  affiliateUrl  String
+  shopName      String
+  // Comma-separated tags (SQLite has no native array type).
+  tags          String     @default("")
+  viralScore    Int        @default(50)
+  isActive      Boolean    @default(true)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  wishlistItems   WishlistItem[]
+  events          UserProductEvent[]
+  affiliateClicks AffiliateClick[]
+
+  @@map("products")
+  @@index([isActive])
+  @@index([category])
+}
+
+model WishlistItem {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@map("wishlist_items")
+}
+
+model UserProductEvent {
+  id        String    @id @default(cuid())
+  userId    String?
+  sessionId String
+  productId String
+  eventType EventType
+  // Optional small JSON payload (stringified), never sensitive data.
+  metadata  String?
+  createdAt DateTime  @default(now())
+
+  user    User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("user_product_events")
+  @@index([productId])
+  @@index([sessionId])
+  @@index([userId])
+  @@index([eventType])
+}
+
+model AffiliateClick {
+  id           String   @id @default(cuid())
+  userId       String?
+  sessionId    String
+  productId    String
+  affiliateUrl String
+  referrer     String?
+  createdAt    DateTime @default(now())
+
+  user    User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("affiliate_clicks")
+  @@index([productId])
+  @@index([sessionId])
+  @@index([userId])
+}
+
+model UserPreference {
+  userId         String   @id
+  // JSON-encoded maps of category/tag -> weight, e.g. {"Tech": 3, "Gaming": 1}
+  categoryWeights String  @default("{}")
+  tagWeights      String  @default("{}")
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
