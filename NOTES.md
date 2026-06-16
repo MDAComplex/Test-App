@@ -146,3 +146,48 @@ gehasht, niemals im Klartext oder im Client-Bundle.
   (frei gewaehlte Schwellenwerte, kein echtes Ranking-System).
 - End-to-end smoke-getestet: Registrierung → Login → Wishlist-Add via API →
   `/wishlist` zeigt Summe + Rang-Label korrekt.
+
+## Zwischenschritt: Routen-Umbau fuer Admin-Layout
+
+Vor Phase 6 wurde der Root-Layout-Aufbau angepasst: der 430px-"Phone Frame"
+lag bisher in `app/layout.tsx` und haette damit auch den Admin-Bereich
+eingeengt. Alle Konsumenten-Seiten (`/`, `/login`, `/register`, `/feed`,
+`/wishlist`, `/profile`) liegen jetzt in der Route-Group `app/(shop)/`, die
+ihr eigenes Layout mit dem Phone-Frame mitbringt; `app/layout.tsx` enthaelt
+nur noch `<html>/<body>` + `SessionProvider`. `app/admin/*` liegt ausserhalb
+dieser Gruppe und rendert dadurch volle Breite. URLs aendern sich durch
+Route-Groups nicht (Klammerordner werden nicht Teil des Pfads).
+
+## Phase 6 – Profil & Admin
+
+- `/profile` (`requireUser()`): Name/E-Mail, Admin-Badge falls Rolle ADMIN,
+  eigene Statistik (Likes, Wishlist-Groesse, Shop-Klicks – jeweils aus
+  `UserProductEvent`/`WishlistItem`/`AffiliateClick` gezaehlt), Link in den
+  Admin-Bereich (nur fuer Admins sichtbar) und Logout-Button
+  (`signOut()` von `next-auth/react`).
+- `/admin/products` (nur Admin): Tabelle aller Produkte (auch inaktive),
+  Aktiv/Inaktiv-Toggle und Loeschen (mit Browser-`confirm()`) direkt in der
+  Zeile, Link zu "Neues Produkt" und "Bearbeiten". Formularfelder exakt wie
+  im Auftrag: Name, Beschreibung, Preis, Kategorie, Bild-URL, Video-URL?,
+  Poster-URL?, MediaType, MediaFit, Affiliate-URL, Shopname, Tags,
+  ViralScore, Aktiv/Inaktiv.
+- **Umsetzung via Server Actions** (`lib/admin-actions.ts`:
+  `createProduct`, `updateProduct`, `toggleProductActive`, `deleteProduct`),
+  nicht via `/api`-Routen – passend zur fruehen Architekturentscheidung
+  "Server Actions fuer Admin-CRUD, API-Routen fuer nutzerseitige
+  Feed/Wishlist/Event-Aktionen".
+- **Schutz in zwei Schichten** (defense in depth, wichtig weil Server
+  Actions direkt aufrufbar sind und Proxy-Matcher umgehen koennen):
+  1. `proxy.ts` blockt `/admin/*` bereits auf Netzwerkebene fuer
+     Nicht-Admins (seit Phase 2).
+  2. `app/admin/layout.tsx` ruft zusaetzlich `requireAdmin()` bei **jedem**
+     Render auf, und jede einzelne Server Action in `lib/admin-actions.ts`
+     ruft `requireAdmin()` ebenfalls selbst zu Beginn auf.
+  Per curl verifiziert: ein eingeloggter Nicht-Admin, der eine zuvor aus dem
+  HTML extrahierte Server-Action-Payload direkt erneut an `/admin/products`
+  schickt, wird trotzdem zu `/login` umgeleitet statt die Aktion auszufuehren.
+- End-to-end smoke-getestet (curl mit den von Next.js fuer Server Actions
+  generierten `multipart/form-data`-Feldern): Produkt erstellen (303 Redirect
+  zu `/admin/products`, Zeile erscheint in DB), Aktiv/Inaktiv togglen,
+  Bearbeiten-Formular zeigt korrekt vorausgefuellte Werte, Loeschen entfernt
+  die Zeile aus der DB.

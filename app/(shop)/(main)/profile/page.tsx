@@ -1,0 +1,59 @@
+import Link from "next/link";
+import { requireUser } from "@/lib/authz";
+import { prisma } from "@/lib/prisma";
+import { LogoutButton } from "@/components/logout-button";
+
+export default async function ProfilePage() {
+  const session = await requireUser();
+  const userId = session!.user.id;
+
+  const [wishlistCount, likeCount, clickCount] = await Promise.all([
+    prisma.wishlistItem.count({ where: { userId } }),
+    prisma.userProductEvent.count({ where: { userId, eventType: "product_like" } }),
+    prisma.affiliateClick.count({ where: { userId } }),
+  ]);
+
+  return (
+    <div className="no-scrollbar h-dvh overflow-y-auto px-4 pb-28 pt-[max(1rem,env(safe-area-inset-top))]">
+      <h1 className="text-xl font-bold">Profil</h1>
+
+      <div className="mt-4 rounded-2xl bg-zinc-900 p-4">
+        <p className="font-semibold">{session!.user.name || session!.user.email}</p>
+        <p className="text-sm text-zinc-400">{session!.user.email}</p>
+        {session!.user.role === "ADMIN" && (
+          <span className="mt-2 inline-block rounded-full bg-accent/20 px-3 py-1 text-xs font-semibold text-accent">
+            Admin
+          </span>
+        )}
+      </div>
+
+      <div className="mt-4 grid grid-cols-3 gap-3 text-center">
+        <div className="rounded-2xl bg-zinc-900 p-3">
+          <p className="text-lg font-bold text-accent">{likeCount}</p>
+          <p className="text-xs text-zinc-400">Likes</p>
+        </div>
+        <div className="rounded-2xl bg-zinc-900 p-3">
+          <p className="text-lg font-bold text-accent">{wishlistCount}</p>
+          <p className="text-xs text-zinc-400">Wishlist</p>
+        </div>
+        <div className="rounded-2xl bg-zinc-900 p-3">
+          <p className="text-lg font-bold text-accent">{clickCount}</p>
+          <p className="text-xs text-zinc-400">Shop-Klicks</p>
+        </div>
+      </div>
+
+      {session!.user.role === "ADMIN" && (
+        <Link
+          href="/admin/products"
+          className="mt-6 block w-full rounded-xl bg-accent py-3 text-center font-semibold text-white"
+        >
+          Admin-Bereich
+        </Link>
+      )}
+
+      <div className="mt-3">
+        <LogoutButton />
+      </div>
+    </div>
+  );
+}

@@ -41,12 +41,8 @@ export default function RootLayout({
       lang="de"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="flex min-h-dvh justify-center bg-black">
-        <Providers>
-          <div className="relative flex min-h-dvh w-full max-w-[430px] flex-col bg-black text-white sm:shadow-[0_0_60px_rgba(124,58,237,0.15)]">
-            {children}
-          </div>
-        </Providers>
+      <body className="min-h-dvh bg-black text-white antialiased">
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
