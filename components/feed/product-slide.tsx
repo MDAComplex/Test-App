@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import type { ProductDTO } from "@/lib/types";
 import { ProductMedia } from "@/components/feed/product-media";
-import { HeartIcon, ShareIcon, ShopBagIcon, StarIcon } from "@/components/icons";
+import { CommentIcon, HeartIcon, ShareIcon, ShopBagIcon, StarIcon } from "@/components/icons";
 
 type ProductSlideProps = {
   product: ProductDTO;
@@ -15,6 +15,7 @@ type ProductSlideProps = {
   onDoubleTapWishlist: (productId: string) => void;
   onToggleWishlist: (productId: string) => void;
   onShare: (productId: string) => void;
+  onComment: (productId: string) => void;
 };
 
 const DOUBLE_TAP_WINDOW_MS = 300;
@@ -29,6 +30,7 @@ export function ProductSlide({
   onDoubleTapWishlist,
   onToggleWishlist,
   onShare,
+  onComment,
 }: ProductSlideProps) {
   const lastTapRef = useRef(0);
   const [heartPopKey, setHeartPopKey] = useState(0);
@@ -94,6 +96,16 @@ export function ProductSlide({
           <ShopBagIcon className="h-8 w-8" />
           <span className="text-xs font-medium">Zum Shop</span>
         </a>
+
+        <button
+          type="button"
+          onClick={() => onComment(product.id)}
+          className="flex flex-col items-center gap-1 text-white"
+          aria-label="Kommentare"
+        >
+          <CommentIcon className="h-8 w-8" />
+          <span className="text-xs font-medium">Kommentare</span>
+        </button>
 
         <button
           type="button"

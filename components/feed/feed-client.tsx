@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import Link from "next/link";
 import type { ProductDTO } from "@/lib/types";
 import { ProductSlide } from "@/components/feed/product-slide";
+import { CommentDrawer } from "@/components/feed/comment-drawer";
 import { trackEvent } from "@/lib/trackEvent";
 
 type FeedClientProps = {
@@ -24,6 +25,7 @@ export function FeedClient({ initialItems, totalCount }: FeedClientProps) {
   );
   const [activeIndex, setActiveIndex] = useState(0);
   const [authPrompt, setAuthPrompt] = useState(false);
+  const [commentProductId, setCommentProductId] = useState<string | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const slideRefs = useRef<Map<string, HTMLElement>>(new Map());
@@ -159,6 +161,10 @@ export function FeedClient({ initialItems, totalCount }: FeedClientProps) {
     }
   }
 
+  function handleOpenComments(productId: string) {
+    setCommentProductId(productId);
+  }
+
   function handleDoubleTapWishlist(productId: string) {
     if (!wishlisted.has(productId)) {
       addToWishlist(productId);
@@ -206,10 +212,19 @@ export function FeedClient({ initialItems, totalCount }: FeedClientProps) {
               onDoubleTapWishlist={handleDoubleTapWishlist}
               onToggleWishlist={handleToggleWishlist}
               onShare={handleShare}
+              onComment={handleOpenComments}
             />
           </div>
         ))}
       </div>
+
+      {commentProductId && (
+        <CommentDrawer
+          productId={commentProductId}
+          isLoggedIn={status === "authenticated"}
+          onClose={() => setCommentProductId(null)}
+        />
+      )}
 
       {authPrompt && (
         <div className="absolute inset-x-4 bottom-24 z-40 rounded-2xl bg-zinc-900/95 p-4 text-sm shadow-lg ring-1 ring-white/10">
