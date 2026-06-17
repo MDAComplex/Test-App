@@ -11,11 +11,13 @@ declare module "@auth/core/types" {
     user: {
       id: string;
       role: AppRole;
+      username?: string | null;
     } & DefaultSession["user"];
   }
 
   interface User {
     role: AppRole;
+    username?: string | null;
   }
 }
 
@@ -23,5 +25,6 @@ declare module "@auth/core/jwt" {
   interface JWT {
     id: string;
     role: AppRole;
+    username?: string | null;
   }
 }

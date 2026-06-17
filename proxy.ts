@@ -24,6 +24,14 @@ export default auth((request) => {
     }
   }
 
+  if (request.nextUrl.pathname.startsWith("/onboarding")) {
+    if (!request.auth?.user) {
+      const loginUrl = new URL("/login", request.nextUrl);
+      loginUrl.searchParams.set("from", "/onboarding");
+      return NextResponse.redirect(loginUrl);
+    }
+  }
+
   const response = NextResponse.next({ request });
   if (!hadSessionId) {
     response.cookies.set({
