@@ -44,6 +44,7 @@ enum EventType {
 model User {
   id            String   @id @default(cuid())
   email         String   @unique
+  username      String?  @unique
   passwordHash  String
   name          String?
   role          Role     @default(USER)
@@ -54,6 +55,8 @@ model User {
   events          UserProductEvent[]
   affiliateClicks AffiliateClick[]
   preferences     UserPreference?
+  comments        ProductComment[]
+  commentLikes    CommentLike[]
 
   @@map("users")
 }
@@ -81,6 +84,8 @@ model Product {
   wishlistItems   WishlistItem[]
   events          UserProductEvent[]
   affiliateClicks AffiliateClick[]
+  offers          ProductOffer[]
+  comments        ProductComment[]
 
   @@map("products")
   @@index([isActive])
@@ -143,9 +148,59 @@ model UserPreference {
   // JSON-encoded maps of category/tag -> weight, e.g. {"Tech": 3, "Gaming": 1}
   categoryWeights String  @default("{}")
   tagWeights      String  @default("{}")
+  onboardingCompleted Boolean @default(false)
+  budgetRange         String  @default("[]")
+  styleVibes          String  @default("[]")
   updatedAt      DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_preferences")
+}
+
+model ProductOffer {
+  id           String   @id @default(cuid())
+  productId    String
+  shopName     String
+  price        Float
+  deliveryText String?
+  affiliateUrl String
+  isPrimary    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("product_offers")
+  @@index([productId])
+}
+
+model ProductComment {
+  id        String   @id @default(cuid())
+  productId String
+  userId    String
+  content   String
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  likes   CommentLike[]
+
+  @@map("product_comments")
+  @@index([productId])
+}
+
+model CommentLike {
+  id        String   @id @default(cuid())
+  commentId String
+  userId    String
+  createdAt DateTime @default(now())
+
+  comment ProductComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, userId])
+  @@map("comment_likes")
 }
