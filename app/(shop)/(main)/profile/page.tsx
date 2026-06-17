@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { LogoutButton } from "@/components/logout-button";
+import { ChangePasswordForm } from "@/components/profile/change-password-form";
 
 export default async function ProfilePage() {
   const session = await requireUser();
@@ -51,7 +52,14 @@ export default async function ProfilePage() {
         </Link>
       )}
 
-      <div className="mt-8">
+      <div className="mt-8 rounded-2xl bg-zinc-900 p-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+          Passwort ändern
+        </p>
+        <ChangePasswordForm />
+      </div>
+
+      <div className="mt-6">
         <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
           Rechtliches
         </p>
