@@ -91,6 +91,11 @@ export function ProductDetailView({
         <p className="text-xs font-medium text-zinc-400">{product.shopName}</p>
         <h1 className="mt-0.5 text-xl font-bold leading-tight">{product.name}</h1>
         <p className="mt-1.5 text-2xl font-bold text-accent">{currency.format(product.price)}</p>
+        {product.deliveryTime && (
+          <span className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-2.5 py-1 text-xs font-medium text-emerald-400">
+            🚚 {product.deliveryTime}
+          </span>
+        )}
         <div className="mt-1.5 flex items-center gap-1.5 text-xs text-zinc-300">
           <StarIcon className="h-3.5 w-3.5 text-yellow-400" />
           <span>

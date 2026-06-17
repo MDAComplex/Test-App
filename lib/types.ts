@@ -24,6 +24,11 @@ export type ProductDTO = {
   // this MVP (out of scope), this just gives the feed the TikTok-shop look.
   rating: number;
   ratingCount: number;
+  // Real social-proof counts derived from logged events/comments.
+  likeCount: number;
+  viewCount: number;
+  commentCount: number;
+  deliveryTime: string | null;
 };
 
 // Client-safe shape for a single shop offer on the product detail page.

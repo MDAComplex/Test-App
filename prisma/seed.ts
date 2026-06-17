@@ -19,6 +19,7 @@ type SeedProduct = {
   shopName: string;
   tags: string[];
   viralScore: number;
+  deliveryTime?: string;
 };
 
 // Free, publicly reusable sample videos (Blender Foundation films, hosted by Google).
@@ -41,6 +42,7 @@ const products: SeedProduct[] = [
     shopName: "SoundHub",
     tags: ["audio", "wireless", "earbuds"],
     viralScore: 82,
+    deliveryTime: "2-3 Werktage",
   },
   {
     name: "Mini Drohne 4K FoldCam",
@@ -51,6 +53,7 @@ const products: SeedProduct[] = [
     shopName: "SkyGearStore",
     tags: ["drohne", "kamera", "gadget"],
     viralScore: 91,
+    deliveryTime: "1-2 Werktage Express",
   },
   {
     name: "Magnetisches 3-in-1 Ladepad",
@@ -71,6 +74,7 @@ const products: SeedProduct[] = [
     shopName: "FitGear",
     tags: ["wearable", "fitness", "smartwatch"],
     viralScore: 88,
+    deliveryTime: "4-6 Werktage",
     mediaType: "video",
     videoUrl: SAMPLE_VIDEOS[0],
     posterUrl: img("tech-smartwatch-poster"),
@@ -127,6 +131,7 @@ const products: SeedProduct[] = [
     shopName: "GlowLab",
     tags: ["skincare", "beauty-tech", "selfcare"],
     viralScore: 90,
+    deliveryTime: "2-3 Werktage",
     mediaType: "video",
     videoUrl: SAMPLE_VIDEOS[1],
     posterUrl: img("beauty-ledmask-poster"),
@@ -172,6 +177,7 @@ const products: SeedProduct[] = [
     shopName: "PixelGear",
     tags: ["keyboard", "rgb", "setup"],
     viralScore: 87,
+    deliveryTime: "Sofort verfügbar",
   },
   {
     name: "Ergonomischer Gaming-Stuhl Flex",
@@ -340,6 +346,7 @@ const products: SeedProduct[] = [
     shopName: "FloatDeco",
     tags: ["deko", "viral", "geschenk"],
     viralScore: 97,
+    deliveryTime: "1-2 Werktage Express",
     mediaType: "video",
     videoUrl: SAMPLE_VIDEOS[3],
     posterUrl: img("viral-bonsai-poster"),
@@ -368,6 +375,7 @@ const products: SeedProduct[] = [
     shopName: "MaisonLeger",
     tags: ["tasche", "luxus", "fashion"],
     viralScore: 86,
+    deliveryTime: "4-6 Werktage",
   },
   {
     name: "Edelstahl Whiskey-Steine Set",
@@ -421,11 +429,23 @@ async function main() {
         mediaFit: p.mediaFit ?? (Math.random() > 0.5 ? "hybrid" : "cover"),
         affiliateUrl: `https://example.com/product/${encodeURIComponent(p.name.toLowerCase().replace(/\s+/g, "-"))}`,
         shopName: p.shopName,
+        deliveryTime: p.deliveryTime ?? null,
         tags: p.tags.join(","),
         viralScore: p.viralScore,
         isActive: true,
       })),
     });
+  }
+
+  // Backfill deliveryTime on existing products (idempotent) so the field is
+  // populated even when the catalog was seeded before this column existed.
+  for (const p of products) {
+    if (p.deliveryTime) {
+      await prisma.product.updateMany({
+        where: { name: p.name },
+        data: { deliveryTime: p.deliveryTime },
+      });
+    }
   }
 
   const adminEmail = "admin@viralo.shop";

@@ -12,6 +12,7 @@ type ProductFormValues = {
   mediaFit: "cover" | "hybrid" | "contain" | "auto";
   affiliateUrl: string;
   shopName: string;
+  deliveryTime: string | null;
   tags: string;
   viralScore: number;
   isActive: boolean;
@@ -29,12 +30,14 @@ function Field({
   defaultValue,
   type = "text",
   required,
+  placeholder,
 }: {
   label: string;
   name: string;
   defaultValue?: string;
   type?: string;
   required?: boolean;
+  placeholder?: string;
 }) {
   return (
     <label className="flex flex-1 flex-col gap-1 text-sm">
@@ -44,6 +47,7 @@ function Field({
         name={name}
         defaultValue={defaultValue}
         required={required}
+        placeholder={placeholder}
         step={type === "number" ? "any" : undefined}
         className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-white outline-none focus:border-accent"
       />
@@ -120,6 +124,12 @@ export function ProductForm({ action, submitLabel, initial }: ProductFormProps) 
 
       <Field label="Affiliate-URL" name="affiliateUrl" defaultValue={initial?.affiliateUrl} required />
       <Field label="Shopname" name="shopName" defaultValue={initial?.shopName} required />
+      <Field
+        label="Lieferzeit (optional)"
+        name="deliveryTime"
+        defaultValue={initial?.deliveryTime ?? ""}
+        placeholder="z. B. 2-3 Werktage"
+      />
       <Field label="Tags (kommagetrennt)" name="tags" defaultValue={initial?.tags ?? ""} />
 
       <div className="flex items-end gap-4">

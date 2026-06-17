@@ -29,6 +29,7 @@ function parseProductForm(formData: FormData) {
     mediaFit: (["cover", "hybrid", "contain", "auto"].includes(mediaFitValue) ? mediaFitValue : "hybrid") as MediaFit,
     affiliateUrl: str("affiliateUrl"),
     shopName: str("shopName"),
+    deliveryTime: optionalStr("deliveryTime"),
     tags: serializeTags(str("tags").split(",")),
     viralScore: Math.max(0, Math.min(100, Math.round(Number(str("viralScore")) || 0))),
     isActive: formData.get("isActive") === "on",

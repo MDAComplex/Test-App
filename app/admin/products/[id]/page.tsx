@@ -27,6 +27,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
             mediaFit: product.mediaFit,
             affiliateUrl: product.affiliateUrl,
             shopName: product.shopName,
+            deliveryTime: product.deliveryTime,
             tags: product.tags,
             viralScore: product.viralScore,
             isActive: product.isActive,

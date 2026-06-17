@@ -74,6 +74,7 @@ model Product {
   mediaFit      MediaFit   @default(hybrid)
   affiliateUrl  String
   shopName      String
+  deliveryTime  String?
   // Comma-separated tags (SQLite has no native array type).
   tags          String     @default("")
   viralScore    Int        @default(50)

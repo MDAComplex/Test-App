@@ -28,7 +28,17 @@ function deriveRating(product: Pick<Product, "id" | "viralScore">) {
   return { rating: Math.round(rating * 10) / 10, ratingCount };
 }
 
-export function toProductDTO(product: Product, isWishlisted: boolean): ProductDTO {
+type ProductCounts = {
+  likeCount?: number;
+  viewCount?: number;
+  commentCount?: number;
+};
+
+export function toProductDTO(
+  product: Product,
+  isWishlisted: boolean,
+  counts: ProductCounts = {},
+): ProductDTO {
   const { rating, ratingCount } = deriveRating(product);
   return {
     id: product.id,
@@ -48,5 +58,9 @@ export function toProductDTO(product: Product, isWishlisted: boolean): ProductDT
     isWishlisted,
     rating,
     ratingCount,
+    likeCount: counts.likeCount ?? 0,
+    viewCount: counts.viewCount ?? 0,
+    commentCount: counts.commentCount ?? 0,
+    deliveryTime: product.deliveryTime,
   };
 }

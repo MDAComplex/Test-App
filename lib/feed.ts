@@ -42,16 +42,37 @@ export async function getFeedBatch({
   excludeIds,
   limit = FEED_BATCH_SIZE,
 }: GetFeedBatchOptions): Promise<ProductDTO[]> {
-  const [products, wishlistRows, preference, engagementScores] = await Promise.all([
-    prisma.product.findMany({ where: { isActive: true } }),
-    userId
-      ? prisma.wishlistItem.findMany({ where: { userId }, select: { productId: true } })
-      : Promise.resolve([] as { productId: string }[]),
-    userId ? prisma.userPreference.findUnique({ where: { userId } }) : Promise.resolve(null),
-    getGlobalEngagementScores(),
-  ]);
+  const [products, wishlistRows, preference, engagementScores, likeCounts, viewCounts, commentCounts] =
+    await Promise.all([
+      prisma.product.findMany({ where: { isActive: true } }),
+      userId
+        ? prisma.wishlistItem.findMany({ where: { userId }, select: { productId: true } })
+        : Promise.resolve([] as { productId: string }[]),
+      userId ? prisma.userPreference.findUnique({ where: { userId } }) : Promise.resolve(null),
+      getGlobalEngagementScores(),
+      prisma.userProductEvent.groupBy({
+        by: ["productId"],
+        where: { eventType: { in: ["product_like", "product_wishlist_add"] } },
+        _count: { _all: true },
+      }),
+      prisma.userProductEvent.groupBy({
+        by: ["productId"],
+        where: { eventType: "product_view" },
+        _count: { _all: true },
+      }),
+      prisma.productComment.groupBy({
+        by: ["productId"],
+        where: { isDeleted: false },
+        _count: { _all: true },
+      }),
+    ]);
 
   const wishlistedIds = new Set(wishlistRows.map((row) => row.productId));
+  const toCountMap = (rows: { productId: string; _count: { _all: number } }[]) =>
+    new Map(rows.map((row) => [row.productId, row._count._all]));
+  const likeCountMap = toCountMap(likeCounts);
+  const viewCountMap = toCountMap(viewCounts);
+  const commentCountMap = toCountMap(commentCounts);
   const excludeSet = new Set(excludeIds);
   const categoryWeights: Record<string, number> = preference ? JSON.parse(preference.categoryWeights) : {};
   const tagWeights: Record<string, number> = preference ? JSON.parse(preference.tagWeights) : {};
@@ -81,7 +102,13 @@ export async function getFeedBatch({
 
   scored.sort((a, b) => b.score - a.score);
 
-  return scored.slice(0, limit).map(({ product }) => toProductDTO(product, wishlistedIds.has(product.id)));
+  return scored.slice(0, limit).map(({ product }) =>
+    toProductDTO(product, wishlistedIds.has(product.id), {
+      likeCount: likeCountMap.get(product.id) ?? 0,
+      viewCount: viewCountMap.get(product.id) ?? 0,
+      commentCount: commentCountMap.get(product.id) ?? 0,
+    }),
+  );
 }
 
 async function getGlobalEngagementScores(): Promise<Map<string, number>> {
