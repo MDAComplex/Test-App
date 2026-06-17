@@ -41,7 +41,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# prisma generated client + local sqlite db
+# prisma generated client (rebuilt on install/build)
 /generated/
-/dev.db
+# dev.db is intentionally tracked: it is the pre-seeded demo database that
+# gets bundled into the Vercel deployment so no external DB setup is needed.
 /dev.db-journal
