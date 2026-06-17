@@ -26,6 +26,18 @@ export type ProductDTO = {
   ratingCount: number;
 };
 
+// Client-safe shape for a single shop offer on the product detail page.
+// `affiliateUrl` is intentionally NOT included: the client only needs the
+// offer id to build a `/go/[productId]?offerId=` link (same reasoning as
+// ProductDTO above).
+export type OfferDTO = {
+  id: string;
+  shopName: string;
+  price: number;
+  deliveryText: string | null;
+  isPrimary: boolean;
+};
+
 export type EventType =
   | "product_view"
   | "product_visible_2s"

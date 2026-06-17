@@ -436,3 +436,33 @@ Warenkorb, TikTok-Importe, Web-Scraping, ML-basiertes Ranking, ein echtes
 Kommentar-/Bewertungssystem, Datei-Uploads, Creator-Auszahlungen. Zusaetzlich
 noch offen (siehe Punkt 10 oben): echte Rechtstexte, Self-Service-
 Account-Loeschung, Rate-Limiting, Produktions-Secrets/-Datenbank.
+
+## Phase 9
+
+Erweiterung um echte Nutzerprofile, Onboarding und ein echtes
+Kommentarsystem (letzteres war zuvor bewusst aussen vor, ist jetzt aber
+Teil des Auftrags):
+
+- **Usernames:** `User.username` (unique, optional). Wird bei Registrierung
+  verpflichtend vergeben (Regex `^[a-zA-Z0-9_]{3,30}$`, Eindeutigkeits-Check),
+  ueber JWT/Session bis ins Profil durchgereicht. Admin-Seed setzt `admin`.
+- **Onboarding:** 3-Schritt-Wizard (`/onboarding`, Client Component) fuer
+  Kategorien, Budget-Vibe und Stil-Vibes. Speichert in `UserPreference`
+  (`onboardingCompleted`, `budgetRange`, `styleVibes`) und setzt fuer gewaehlte
+  Kategorien `categoryWeights = 3` (starkes Feed-Signal). Nach Registrierung
+  leitet das Formular hierher; das Profil hat einen "Interessen bearbeiten"-
+  Link. Bewusste Entscheidung: kein Auto-Redirect weg vom Onboarding, damit
+  Praeferenzen jederzeit neu gesetzt werden koennen. `proxy.ts` schuetzt
+  `/onboarding` fuer Gaeste.
+- **Produktdetailseite:** `/product/[productId]` (Server Component) mit
+  Medien (wiederverwendete `ProductMedia`), Beschreibung, Wishlist-Toggle,
+  Angebots-Sektion und Kommentaren. Wishlist-Karten verlinken jetzt auf die
+  Detailseite, "Zum Shop" bleibt der direkte `/go/`-Affiliate-Redirect.
+- **ProductOffer:** mehrere Shop-Angebote pro Produkt (Primaer-Angebot zuerst,
+  dann nach Preis). `/go/[productId]?offerId=` waehlt die Affiliate-URL des
+  jeweiligen Angebots (sonst Fallback auf `product.affiliateUrl`). Ein eigenes
+  Admin-CRUD fuer Angebote wurde bewusst (noch) nicht gebaut - Angebote per DB.
+- **Kommentare:** `ProductComment` (Soft-Delete) + `CommentLike` (Toggle,
+  unique pro User/Kommentar). API unter `/api/comments` (GET/POST),
+  `/api/comments/[id]` (DELETE, nur eigene), `/api/comments/[id]/like` (POST
+  Toggle). UI mit optimistischem Like/Delete und Zeichenzaehler (max 500).

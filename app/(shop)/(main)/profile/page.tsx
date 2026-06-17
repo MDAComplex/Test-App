@@ -20,6 +20,9 @@ export default async function ProfilePage() {
 
       <div className="mt-4 rounded-2xl bg-zinc-900 p-4">
         <p className="font-semibold">{session!.user.name || session!.user.email}</p>
+        {session!.user.username && (
+          <p className="text-sm text-zinc-400">@{session!.user.username}</p>
+        )}
         <p className="text-sm text-zinc-400">{session!.user.email}</p>
         {session!.user.role === "ADMIN" && (
           <span className="mt-2 inline-block rounded-full bg-accent/20 px-3 py-1 text-xs font-semibold text-accent">
@@ -27,6 +30,13 @@ export default async function ProfilePage() {
           </span>
         )}
       </div>
+
+      <Link
+        href="/onboarding"
+        className="mt-4 block w-full rounded-xl border border-zinc-700 py-3 text-center font-semibold text-zinc-200"
+      >
+        Interessen bearbeiten
+      </Link>
 
       <div className="mt-4 grid grid-cols-3 gap-3 text-center">
         <div className="rounded-2xl bg-zinc-900 p-3">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import type { ProductDTO } from "@/lib/types";
 import { trackEvent } from "@/lib/trackEvent";
 
@@ -77,18 +78,20 @@ export function WishlistView({ initialItems }: WishlistViewProps) {
           <ul className="mt-4 flex flex-col gap-3">
             {items.map((product) => (
               <li key={product.id} className="flex gap-3 rounded-2xl bg-zinc-900 p-3">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={product.posterUrl ?? product.imageUrl}
-                  alt={product.name}
-                  className="h-20 w-16 rounded-xl object-cover"
-                />
+                <Link href={`/product/${product.id}`} className="shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={product.posterUrl ?? product.imageUrl}
+                    alt={product.name}
+                    className="h-20 w-16 rounded-xl object-cover"
+                  />
+                </Link>
                 <div className="flex flex-1 flex-col justify-between">
-                  <div>
+                  <Link href={`/product/${product.id}`} className="block">
                     <p className="text-xs text-zinc-400">{product.shopName}</p>
                     <p className="text-sm font-semibold leading-tight">{product.name}</p>
                     <p className="text-sm font-bold text-accent">{currency.format(product.price)}</p>
-                  </div>
+                  </Link>
                   <div className="flex gap-3 text-xs">
                     <a
                       href={`/go/${product.id}`}
