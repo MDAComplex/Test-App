@@ -64,7 +64,7 @@ export function ProductSlide({
   const priceLabel = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(product.price);
 
   return (
-    <section className="relative h-dvh w-full shrink-0 snap-start overflow-hidden" data-product-id={product.id}>
+    <section className="relative h-dvh w-full shrink-0 snap-always snap-start overflow-hidden" data-product-id={product.id}>
       <ProductMedia product={product} isActive={isActive} shouldMount={shouldMount} />
 
       {/* Tap target for double-tap-to-wishlist */}
