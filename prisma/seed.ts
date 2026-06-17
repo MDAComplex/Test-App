@@ -404,25 +404,29 @@ const products: SeedProduct[] = [
 async function main() {
   console.log(`Seeding ${products.length} products...`);
 
-  await prisma.product.deleteMany({});
-  await prisma.product.createMany({
-    data: products.map((p) => ({
-      name: p.name,
-      description: p.description,
-      price: p.price,
-      category: p.category,
-      imageUrl: p.imageUrl,
-      videoUrl: p.videoUrl,
-      posterUrl: p.posterUrl,
-      mediaType: p.mediaType ?? "image",
-      mediaFit: p.mediaFit ?? (Math.random() > 0.5 ? "hybrid" : "cover"),
-      affiliateUrl: `https://example.com/product/${encodeURIComponent(p.name.toLowerCase().replace(/\s+/g, "-"))}`,
-      shopName: p.shopName,
-      tags: p.tags.join(","),
-      viralScore: p.viralScore,
-      isActive: true,
-    })),
-  });
+  // Only seed products on first deployment - subsequent deploys keep existing
+  // data (wishlists, events, user accounts) intact.
+  const existingCount = await prisma.product.count();
+  if (existingCount === 0) {
+    await prisma.product.createMany({
+      data: products.map((p) => ({
+        name: p.name,
+        description: p.description,
+        price: p.price,
+        category: p.category,
+        imageUrl: p.imageUrl,
+        videoUrl: p.videoUrl,
+        posterUrl: p.posterUrl,
+        mediaType: p.mediaType ?? "image",
+        mediaFit: p.mediaFit ?? (Math.random() > 0.5 ? "hybrid" : "cover"),
+        affiliateUrl: `https://example.com/product/${encodeURIComponent(p.name.toLowerCase().replace(/\s+/g, "-"))}`,
+        shopName: p.shopName,
+        tags: p.tags.join(","),
+        viralScore: p.viralScore,
+        isActive: true,
+      })),
+    });
+  }
 
   const adminEmail = "admin@viralo.shop";
   const adminPassword = process.env.ADMIN_SEED_PASSWORD ?? "ChangeMe123!";

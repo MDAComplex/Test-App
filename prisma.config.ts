@@ -10,6 +10,9 @@ export default defineConfig({
     seed: "npx tsx prisma/seed.ts",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    // Use the non-pooling URL for Prisma CLI (migrations, db push, seed)
+    // so that DDL statements work correctly. Falls back to DATABASE_URL for
+    // local dev. Vercel's Neon integration sets DATABASE_URL_UNPOOLED.
+    url: process.env["DATABASE_URL_UNPOOLED"] ?? process.env["DATABASE_URL"],
   },
 });
