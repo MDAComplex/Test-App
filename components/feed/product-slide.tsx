@@ -10,6 +10,7 @@ type ProductSlideProps = {
   isActive: boolean;
   shouldMount: boolean;
   isWishlisted: boolean;
+  likeCountAdjustment: number;
   position: number;
   total: number;
   onDoubleTapWishlist: (productId: string) => void;
@@ -31,6 +32,7 @@ export function ProductSlide({
   isActive,
   shouldMount,
   isWishlisted,
+  likeCountAdjustment,
   position,
   total,
   onDoubleTapWishlist,
@@ -104,7 +106,7 @@ export function ProductSlide({
               likeAnim ? "scale-125" : "scale-100"
             } transition-transform duration-200`}
           />
-          <span className="text-xs font-medium">{formatCount(product.likeCount)}</span>
+          <span className="text-xs font-medium">{formatCount(Math.max(0, product.likeCount + likeCountAdjustment))}</span>
         </button>
 
         <a
@@ -143,7 +145,7 @@ export function ProductSlide({
         {/* Social proof counts */}
         <div className="flex items-center gap-3 text-[11px] text-zinc-300 mb-1">
           <span>👁 {formatCount(product.viewCount)}</span>
-          <span>♥ {formatCount(product.likeCount)}</span>
+          <span>♥ {formatCount(Math.max(0, product.likeCount + likeCountAdjustment))}</span>
           <span>💬 {formatCount(product.commentCount)}</span>
         </div>
         <p className="text-xs font-medium text-zinc-300">{product.shopName}</p>

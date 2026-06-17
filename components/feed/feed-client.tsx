@@ -16,6 +16,24 @@ type FeedClientProps = {
 const PREFETCH_THRESHOLD = 5;
 const VISIBLE_2S_MS = 2000;
 const VISIBLE_5S_MS = 5000;
+const LS_VIEWED_KEY = "ww_viewed";
+
+function hasViewedProduct(id: string): boolean {
+  try {
+    const ids: string[] = JSON.parse(localStorage.getItem(LS_VIEWED_KEY) ?? "[]");
+    return ids.includes(id);
+  } catch { return false; }
+}
+
+function markProductViewed(id: string): void {
+  try {
+    const ids: string[] = JSON.parse(localStorage.getItem(LS_VIEWED_KEY) ?? "[]");
+    if (!ids.includes(id)) {
+      ids.push(id);
+      localStorage.setItem(LS_VIEWED_KEY, JSON.stringify(ids.slice(-2000)));
+    }
+  } catch {}
+}
 
 export function FeedClient({ initialItems, totalCount }: FeedClientProps) {
   const { status } = useSession();
@@ -83,8 +101,9 @@ export function FeedClient({ initialItems, totalCount }: FeedClientProps) {
           setActiveIndex(index);
         }
 
-        if (!viewedRef.current.has(`${id}-${index}`)) {
-          viewedRef.current.add(`${id}-${index}`);
+        if (!viewedRef.current.has(id) && !hasViewedProduct(id)) {
+          viewedRef.current.add(id);
+          markProductViewed(id);
           trackEvent(id, "product_view");
         }
 
@@ -207,6 +226,9 @@ export function FeedClient({ initialItems, totalCount }: FeedClientProps) {
               isActive={index === activeIndex}
               shouldMount={Math.abs(index - activeIndex) <= 1}
               isWishlisted={wishlisted.has(product.id)}
+              likeCountAdjustment={
+                (wishlisted.has(product.id) ? 1 : 0) - (product.isWishlisted ? 1 : 0)
+              }
               position={index + 1}
               total={Math.max(totalCount, items.length)}
               onDoubleTapWishlist={handleDoubleTapWishlist}
