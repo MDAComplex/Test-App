@@ -44,6 +44,14 @@ export function FeedClient({ initialItems, totalCount }: FeedClientProps) {
       const next: ProductDTO[] = data.items ?? [];
       next.forEach((p) => seenIdsRef.current.add(p.id));
       setItems((prev) => [...prev, ...next]);
+      const newWishlisted = next.filter((p) => p.isWishlisted);
+      if (newWishlisted.length > 0) {
+        setWishlisted((prev) => {
+          const updated = new Set(prev);
+          newWishlisted.forEach((p) => updated.add(p.id));
+          return updated;
+        });
+      }
     } catch {
       // Infinite scroll failing silently is fine; the user can keep
       // scrolling within what's already loaded.
@@ -105,6 +113,7 @@ export function FeedClient({ initialItems, totalCount }: FeedClientProps) {
   }
 
   async function addToWishlist(productId: string) {
+    if (status === "loading") return;
     if (status !== "authenticated") {
       setAuthPrompt(true);
       return;

@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     include: {
       user: { select: { name: true, username: true } },
       _count: { select: { likes: true } },
-      likes: userId ? { where: { userId }, select: { id: true } } : false,
+      ...(userId ? { likes: { where: { userId }, select: { id: true } } } : {}),
     },
   });
 
