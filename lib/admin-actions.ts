@@ -63,3 +63,38 @@ export async function deleteProduct(id: string) {
   await prisma.product.delete({ where: { id } });
   revalidatePath("/admin/products");
 }
+
+export async function createOffer(productId: string, formData: FormData) {
+  await requireAdmin();
+  const str = (key: string) => (formData.get(key) ?? "").toString().trim();
+
+  const shopName = str("shopName");
+  const affiliateUrl = str("affiliateUrl");
+  const price = Number(str("price")) || 0;
+  const deliveryText = str("deliveryText") || null;
+  const isPrimary = formData.get("isPrimary") === "on";
+
+  if (!shopName || !affiliateUrl) return;
+
+  // If this offer is marked primary, demote any existing primary offer first so
+  // there's always exactly one primary per product.
+  await prisma.$transaction(async (tx) => {
+    if (isPrimary) {
+      await tx.productOffer.updateMany({
+        where: { productId, isPrimary: true },
+        data: { isPrimary: false },
+      });
+    }
+    await tx.productOffer.create({
+      data: { productId, shopName, affiliateUrl, price, deliveryText, isPrimary },
+    });
+  });
+
+  revalidatePath(`/admin/products/${productId}`);
+}
+
+export async function deleteOffer(offerId: string, productId: string) {
+  await requireAdmin();
+  await prisma.productOffer.delete({ where: { id: offerId } });
+  revalidatePath(`/admin/products/${productId}`);
+}

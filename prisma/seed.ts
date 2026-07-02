@@ -448,6 +448,44 @@ async function main() {
     }
   }
 
+  // Seed a few multi-shop offers so the product detail page and the admin
+  // offer UI have real data to show. Idempotent: only runs on a fresh DB.
+  const existingOffers = await prisma.productOffer.count();
+  if (existingOffers === 0) {
+    const offerSeeds: { productName: string; offers: Array<{ shopName: string; price: number; deliveryText?: string; isPrimary?: boolean }> }[] = [
+      {
+        productName: "UltraSlim Wireless Earbuds Pro",
+        offers: [
+          { shopName: "SoundHub", price: 59.99, deliveryText: "2-3 Werktage", isPrimary: true },
+          { shopName: "TechDeal", price: 62.5, deliveryText: "1-2 Werktage Express" },
+          { shopName: "MegaMarkt", price: 57.9, deliveryText: "3-5 Werktage" },
+        ],
+      },
+      {
+        productName: "Mini Drohne 4K FoldCam",
+        offers: [
+          { shopName: "SkyGearStore", price: 129.0, deliveryText: "1-2 Werktage Express", isPrimary: true },
+          { shopName: "GadgetWelt", price: 134.99, deliveryText: "2-4 Werktage" },
+        ],
+      },
+    ];
+
+    for (const { productName, offers } of offerSeeds) {
+      const product = await prisma.product.findFirst({ where: { name: productName } });
+      if (!product) continue;
+      await prisma.productOffer.createMany({
+        data: offers.map((o) => ({
+          productId: product.id,
+          shopName: o.shopName,
+          price: o.price,
+          deliveryText: o.deliveryText ?? null,
+          affiliateUrl: `https://example.com/shop/${encodeURIComponent(o.shopName.toLowerCase())}/${encodeURIComponent(productName.toLowerCase().replace(/\s+/g, "-"))}`,
+          isPrimary: o.isPrimary ?? false,
+        })),
+      });
+    }
+  }
+
   const adminEmail = "admin@viralo.shop";
   const adminPassword = process.env.ADMIN_SEED_PASSWORD ?? "ChangeMe123!";
   const passwordHash = await bcrypt.hash(adminPassword, 10);
