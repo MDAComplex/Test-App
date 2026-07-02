@@ -6,13 +6,15 @@ import type { ProductDTO, OfferDTO } from "@/lib/types";
 import type { CommentDTO } from "@/app/api/comments/route";
 import { ProductMedia } from "@/components/feed/product-media";
 import { CommentsSection } from "@/components/product/comments-section";
-import { HeartIcon, StarIcon } from "@/components/icons";
+import { MiniProductRow, type MiniProduct } from "@/components/product/mini-product-row";
+import { HeartIcon, ShareIcon, StarIcon } from "@/components/icons";
 import { trackEvent } from "@/lib/trackEvent";
 
 type ProductDetailViewProps = {
   product: ProductDTO;
   offers: OfferDTO[];
   initialComments: CommentDTO[];
+  relatedProducts: MiniProduct[];
   isLoggedIn: boolean;
 };
 
@@ -22,11 +24,13 @@ export function ProductDetailView({
   product,
   offers,
   initialComments,
+  relatedProducts,
   isLoggedIn,
 }: ProductDetailViewProps) {
   const router = useRouter();
   const [isWishlisted, setIsWishlisted] = useState(product.isWishlisted);
   const [busy, setBusy] = useState(false);
+  const [showToast, setShowToast] = useState(false);
 
   const primaryOffer = offers.find((o) => o.isPrimary) ?? offers[0] ?? null;
   const otherOffers = offers.filter((o) => o !== primaryOffer);
@@ -54,6 +58,26 @@ export function ProductDetailView({
     }
   }
 
+  async function handleShare() {
+    trackEvent(product.id, "product_share");
+    const url = `${window.location.origin}/product/${product.id}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ url, title: product.name });
+        return;
+      } catch {
+        // User cancelled or share failed; fall through to clipboard fallback.
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 2000);
+    } catch {
+      // Nothing more we can do without a sharing API; not worth blocking the UI for.
+    }
+  }
+
   function shopHref(offerId?: string) {
     return offerId ? `/go/${product.id}?offerId=${offerId}` : `/go/${product.id}`;
   }
@@ -72,14 +96,24 @@ export function ProductDetailView({
             <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
-        <button
-          type="button"
-          onClick={toggleWishlist}
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-800"
-          aria-label="Will ich"
-        >
-          <HeartIcon filled={isWishlisted} className={`h-5 w-5 ${isWishlisted ? "text-accent" : "text-white"}`} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleShare}
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-800 text-white"
+            aria-label="Teilen"
+          >
+            <ShareIcon className="h-5 w-5" />
+          </button>
+          <button
+            type="button"
+            onClick={toggleWishlist}
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-800"
+            aria-label="Will ich"
+          >
+            <HeartIcon filled={isWishlisted} className={`h-5 w-5 ${isWishlisted ? "text-accent" : "text-white"}`} />
+          </button>
+        </div>
       </div>
 
       {/* Media */}
@@ -176,7 +210,17 @@ export function ProductDetailView({
           initialComments={initialComments}
           isLoggedIn={isLoggedIn}
         />
+
+        <MiniProductRow title="Das könnte dir auch gefallen" products={relatedProducts} />
       </div>
+
+      {showToast && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-8 z-50 flex justify-center">
+          <span className="rounded-full bg-zinc-800 px-4 py-2 text-sm font-medium text-white shadow-lg ring-1 ring-white/10">
+            Link kopiert!
+          </span>
+        </div>
+      )}
     </div>
   );
 }

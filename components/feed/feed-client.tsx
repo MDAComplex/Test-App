@@ -44,6 +44,7 @@ export function FeedClient({ initialItems, totalCount }: FeedClientProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [authPrompt, setAuthPrompt] = useState(false);
   const [commentProductId, setCommentProductId] = useState<string | null>(null);
+  const [shareToast, setShareToast] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const slideRefs = useRef<Map<string, HTMLElement>>(new Map());
@@ -192,10 +193,12 @@ export function FeedClient({ initialItems, totalCount }: FeedClientProps) {
 
   async function handleShare(productId: string) {
     trackEvent(productId, "product_share");
-    const url = `${window.location.origin}/go/${productId}`;
+    // Share the public product page, not the /go affiliate redirect.
+    const url = `${window.location.origin}/product/${productId}`;
+    const title = items.find((p) => p.id === productId)?.name ?? "Wishlist Wars";
     if (navigator.share) {
       try {
-        await navigator.share({ url, title: "Wishlist Wars" });
+        await navigator.share({ url, title });
         return;
       } catch {
         // User cancelled or share failed; fall through to clipboard fallback.
@@ -203,6 +206,8 @@ export function FeedClient({ initialItems, totalCount }: FeedClientProps) {
     }
     try {
       await navigator.clipboard.writeText(url);
+      setShareToast(true);
+      setTimeout(() => setShareToast(false), 2000);
     } catch {
       // Nothing more we can do without a sharing API; not worth blocking the UI for.
     }
@@ -246,6 +251,14 @@ export function FeedClient({ initialItems, totalCount }: FeedClientProps) {
           isLoggedIn={status === "authenticated"}
           onClose={() => setCommentProductId(null)}
         />
+      )}
+
+      {shareToast && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-8 z-50 flex justify-center">
+          <span className="rounded-full bg-zinc-800 px-4 py-2 text-sm font-medium text-white shadow-lg ring-1 ring-white/10">
+            Link kopiert!
+          </span>
+        </div>
       )}
 
       {authPrompt && (
