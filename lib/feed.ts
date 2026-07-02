@@ -4,6 +4,52 @@ import type { ProductDTO } from "@/lib/types";
 
 export const FEED_BATCH_SIZE = 15;
 
+export type ProductCountMaps = {
+  likeCountMap: Map<string, number>;
+  viewCountMap: Map<string, number>;
+  commentCountMap: Map<string, number>;
+};
+
+// Shared social-proof count loader for a known set of products. Mirrors the
+// groupBy pattern used inside getFeedBatch, but scoped to specific productIds
+// so pages like /discover, related products and "recently viewed" can reuse it
+// without pulling counts for the whole catalog.
+export async function getProductCounts(productIds: string[]): Promise<ProductCountMaps> {
+  const empty: ProductCountMaps = {
+    likeCountMap: new Map(),
+    viewCountMap: new Map(),
+    commentCountMap: new Map(),
+  };
+  if (productIds.length === 0) return empty;
+
+  const [likeCounts, viewCounts, commentCounts] = await Promise.all([
+    prisma.userProductEvent.groupBy({
+      by: ["productId"],
+      where: { productId: { in: productIds }, eventType: { in: ["product_like", "product_wishlist_add"] } },
+      _count: { _all: true },
+    }),
+    prisma.userProductEvent.groupBy({
+      by: ["productId"],
+      where: { productId: { in: productIds }, eventType: "product_view" },
+      _count: { _all: true },
+    }),
+    prisma.productComment.groupBy({
+      by: ["productId"],
+      where: { productId: { in: productIds }, isDeleted: false },
+      _count: { _all: true },
+    }),
+  ]);
+
+  const toCountMap = (rows: { productId: string; _count: { _all: number } }[]) =>
+    new Map(rows.map((row) => [row.productId, row._count._all]));
+
+  return {
+    likeCountMap: toCountMap(likeCounts),
+    viewCountMap: toCountMap(viewCounts),
+    commentCountMap: toCountMap(commentCounts),
+  };
+}
+
 type GetFeedBatchOptions = {
   userId?: string | null;
   excludeIds: string[];

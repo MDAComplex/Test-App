@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FeedIcon, HeartIcon, UserIcon } from "@/components/icons";
+import { FeedIcon, HeartIcon, SearchIcon, UserIcon } from "@/components/icons";
 
 const NAV_ITEMS = [
   { href: "/feed", label: "Feed", Icon: FeedIcon },
+  { href: "/discover", label: "Entdecken", Icon: SearchIcon },
   { href: "/wishlist", label: "Wishlist", Icon: HeartIcon },
   { href: "/profile", label: "Profil", Icon: UserIcon },
 ] as const;
@@ -15,7 +16,7 @@ export function BottomNav() {
 
   return (
     <nav className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex justify-center pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-      <div className="pointer-events-auto flex items-center gap-6 rounded-full border border-white/10 bg-black/70 px-6 py-2.5 backdrop-blur-md">
+      <div className="pointer-events-auto flex items-center gap-5 rounded-full border border-white/10 bg-black/70 px-5 py-2.5 backdrop-blur-md">
         {NAV_ITEMS.map(({ href, label, Icon }) => {
           const active = pathname === href || pathname.startsWith(`${href}/`);
           return (

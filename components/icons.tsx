@@ -54,6 +54,15 @@ export function CommentIcon({ className }: IconProps) {
   );
 }
 
+export function SearchIcon({ className, filled }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <circle cx="11" cy="11" r="7" fill={filled ? "currentColor" : "none"} />
+      <path d="M20 20l-3.5-3.5" />
+    </svg>
+  );
+}
+
 export function FeedIcon({ className, filled }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={className}>
