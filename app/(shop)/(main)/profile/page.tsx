@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { LogoutButton } from "@/components/logout-button";
 import { ChangePasswordForm } from "@/components/profile/change-password-form";
+import { MiniProductRow, type MiniProduct } from "@/components/product/mini-product-row";
 import { HeartIcon, ShopBagIcon } from "@/components/icons";
 
 function BookmarkIcon({ className }: { className?: string }) {
@@ -17,11 +18,31 @@ export default async function ProfilePage() {
   const session = await requireUser();
   const userId = session!.user.id;
 
-  const [wishlistCount, likeCount, clickCount] = await Promise.all([
+  const [wishlistCount, likeCount, clickCount, recentEvents] = await Promise.all([
     prisma.wishlistItem.count({ where: { userId } }),
     prisma.userProductEvent.count({ where: { userId, eventType: "product_like" } }),
     prisma.affiliateClick.count({ where: { userId } }),
+    prisma.userProductEvent.findMany({
+      where: { userId, eventType: "product_view" },
+      orderBy: { createdAt: "desc" },
+      distinct: ["productId"],
+      take: 8,
+      select: { productId: true },
+    }),
   ]);
+
+  // Fetch the viewed products (active only) and preserve the newest-first order.
+  const recentIds = recentEvents.map((e) => e.productId);
+  const recentProducts = recentIds.length
+    ? await prisma.product.findMany({
+        where: { id: { in: recentIds }, isActive: true },
+        select: { id: true, name: true, price: true, imageUrl: true, posterUrl: true },
+      })
+    : [];
+  const recentById = new Map(recentProducts.map((p) => [p.id, p]));
+  const recentlyViewed: MiniProduct[] = recentIds
+    .map((id) => recentById.get(id))
+    .filter((p): p is NonNullable<typeof p> => Boolean(p));
 
   const displayName = session!.user.name || session!.user.username || session!.user.email || "?";
   const initial = displayName.slice(0, 1).toUpperCase();
@@ -82,6 +103,9 @@ export default async function ProfilePage() {
           Admin-Bereich
         </Link>
       )}
+
+      {/* Recently viewed */}
+      <MiniProductRow title="Zuletzt angesehen" products={recentlyViewed} />
 
       {/* Password section */}
       <div className="mt-8">
