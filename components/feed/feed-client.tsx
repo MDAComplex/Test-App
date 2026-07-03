@@ -273,7 +273,7 @@ export function FeedClient({ initialItems, totalCount }: FeedClientProps) {
               onClick={() => setAuthPrompt(false)}
               className="rounded-lg px-3 py-1.5 text-zinc-400"
             >
-              Spaeter
+              Später
             </button>
           </div>
         </div>

@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Wishlist Wars",
-  description: "TikTok fuer Produkte: entdecken, doppeltippen, wishlisten.",
+  description: "TikTok für Produkte: entdecken, doppeltippen, wishlisten.",
   manifest: "/manifest.json",
   icons: {
     icon: [

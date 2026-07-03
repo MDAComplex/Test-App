@@ -49,7 +49,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
         <h2 className="text-lg font-bold">Angebote ({offers.length})</h2>
 
         {offers.length === 0 ? (
-          <p className="mt-2 text-sm text-zinc-400">Noch keine Angebote fuer dieses Produkt.</p>
+          <p className="mt-2 text-sm text-zinc-400">Noch keine Angebote für dieses Produkt.</p>
         ) : (
           <ul className="mt-3 flex flex-col gap-2">
             {offers.map((offer) => (

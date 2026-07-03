@@ -11,13 +11,13 @@ export function DeleteOfferButton({ offerId, productId, action }: DeleteOfferBut
     <form
       action={action.bind(null, offerId, productId)}
       onSubmit={(e) => {
-        if (!window.confirm("Angebot wirklich loeschen?")) {
+        if (!window.confirm("Angebot wirklich löschen?")) {
           e.preventDefault();
         }
       }}
     >
       <button type="submit" className="text-xs font-semibold text-red-400">
-        Loeschen
+        Löschen
       </button>
     </form>
   );

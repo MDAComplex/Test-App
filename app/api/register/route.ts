@@ -10,7 +10,7 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Ungueltige Anfrage." }, { status: 400 });
+    return NextResponse.json({ error: "Ungültige Anfrage." }, { status: 400 });
   }
 
   const { email, password, name, username } = (body ?? {}) as {
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "username_invalid" }, { status: 400 });
   }
   if (typeof email !== "string" || !EMAIL_RE.test(email)) {
-    return NextResponse.json({ error: "Bitte eine gueltige E-Mail-Adresse angeben." }, { status: 400 });
+    return NextResponse.json({ error: "Bitte eine gültige E-Mail-Adresse angeben." }, { status: 400 });
   }
   if (typeof password !== "string" || password.length < 8) {
     return NextResponse.json({ error: "Passwort muss mindestens 8 Zeichen haben." }, { status: 400 });

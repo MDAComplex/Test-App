@@ -24,7 +24,7 @@ export default function ImpressumPage() {
       </div>
       <p>
         Wishlist Wars verkauft selbst keine Produkte. Alle angezeigten
-        Produkte werden ueber externe Shops via Affiliate-Links vertrieben –
+        Produkte werden über externe Shops via Affiliate-Links vertrieben –
         siehe dazu auch den Affiliate-Hinweis.
       </p>
     </LegalPage>

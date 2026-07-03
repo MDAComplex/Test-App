@@ -10,13 +10,13 @@ export function DeleteProductButton({ productId, action }: DeleteProductButtonPr
     <form
       action={action.bind(null, productId)}
       onSubmit={(e) => {
-        if (!window.confirm("Produkt wirklich loeschen?")) {
+        if (!window.confirm("Produkt wirklich löschen?")) {
           e.preventDefault();
         }
       }}
     >
       <button type="submit" className="text-xs font-semibold text-red-400">
-        Loeschen
+        Löschen
       </button>
     </form>
   );

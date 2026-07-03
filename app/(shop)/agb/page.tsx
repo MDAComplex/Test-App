@@ -4,7 +4,7 @@ export default function AgbPage() {
   return (
     <LegalPage title="AGB">
       <p>
-        Diese allgemeinen Geschaeftsbedingungen sind ein Platzhalter fuer die
+        Diese allgemeinen Geschäftsbedingungen sind ein Platzhalter für die
         MVP-Phase von Wishlist Wars.
       </p>
       <div>
@@ -28,7 +28,7 @@ export default function AgbPage() {
         <p className="font-semibold text-white">Preise und Verfuegbarkeit</p>
         <p>
           Preise, Verfuegbarkeit und Produktdetails koennen sich beim externen
-          Shop jederzeit aendern und werden in Wishlist Wars nicht in
+          Shop jederzeit ändern und werden in Wishlist Wars nicht in
           Echtzeit synchronisiert. Massgeblich ist immer die Anzeige beim
           externen Shop zum Zeitpunkt deines Kaufs.
         </p>

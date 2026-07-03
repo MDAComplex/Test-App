@@ -4,10 +4,10 @@ export default function DatenschutzPage() {
   return (
     <LegalPage title="Datenschutz">
       <p>
-        Diese Datenschutzerklaerung ist ein Platzhalter fuer die MVP-Phase und
+        Diese Datenschutzerklärung ist ein Platzhalter für die MVP-Phase und
         beschreibt in groben Zuegen, welche Daten Wishlist Wars verarbeitet.
         Sie ersetzt keine rechtsverbindliche, DSGVO-konforme
-        Datenschutzerklaerung.
+        Datenschutzerklärung.
       </p>
       <div>
         <p className="font-semibold text-white">Welche Daten wir verarbeiten</p>
@@ -26,7 +26,7 @@ export default function DatenschutzPage() {
       <div>
         <p className="font-semibold text-white">Affiliate-Links</p>
         <p>
-          Beim Klick auf &quot;Zum Shop&quot; wirst du ueber einen
+          Beim Klick auf &quot;Zum Shop&quot; wirst du über einen
           Weiterleitungs-Link zum externen Shop gefuehrt; dabei wird der Klick
           (nicht aber dein Einkauf) bei uns protokolliert. Mehr dazu im
           Affiliate-Hinweis.
@@ -36,7 +36,7 @@ export default function DatenschutzPage() {
         <p className="font-semibold text-white">Loeschung deines Accounts</p>
         <p>
           Du kannst die Loeschung deines Accounts und der zugehoerigen Daten
-          jederzeit beantragen, z. B. ueber die im Profil angegebene
+          jederzeit beantragen, z. B. über die im Profil angegebene
           Kontakt-E-Mail. Eine vollstaendig selbstbedienbare
           Loeschfunktion ist im aktuellen MVP noch nicht eingebaut.
         </p>

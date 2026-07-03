@@ -39,7 +39,7 @@ export function LoginForm() {
 
   return (
     <div className="flex flex-1 flex-col justify-center px-6 py-10">
-      <h1 className="mb-1 text-2xl font-bold">Willkommen zurueck</h1>
+      <h1 className="mb-1 text-2xl font-bold">Willkommen zurück</h1>
       <p className="mb-8 text-sm text-zinc-400">
         Melde dich an, um deine Wishlist zu sehen.
       </p>
