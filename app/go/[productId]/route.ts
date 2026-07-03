@@ -60,5 +60,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     // Tracking must never block the redirect to the shop.
   }
 
+  // Open-redirect hygiene: only ever bounce to an absolute http(s) URL. A
+  // malformed/relative affiliateUrl (bad admin input) falls back to /feed
+  // rather than redirecting somewhere unexpected.
+  if (!/^https?:\/\//i.test(targetUrl)) {
+    return NextResponse.redirect(new URL("/feed", request.nextUrl));
+  }
+
   return NextResponse.redirect(targetUrl, 302);
 }

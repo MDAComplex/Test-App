@@ -3,6 +3,9 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
 const MAX_LEN = 500;
+// Lightweight spam guard: at most this many comments per user per window.
+const RATE_LIMIT_MAX = 10;
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 
 export type CommentDTO = {
   id: string;
@@ -68,6 +71,17 @@ export async function POST(request: NextRequest) {
   const product = await prisma.product.findUnique({ where: { id: productId }, select: { id: true } });
   if (!product) {
     return NextResponse.json({ error: "invalid_product" }, { status: 400 });
+  }
+
+  // Rate-limit-lite: reject if the user has posted too many comments recently.
+  const recentCount = await prisma.productComment.count({
+    where: {
+      userId: session.user.id,
+      createdAt: { gte: new Date(Date.now() - RATE_LIMIT_WINDOW_MS) },
+    },
+  });
+  if (recentCount >= RATE_LIMIT_MAX) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   }
 
   const created = await prisma.productComment.create({

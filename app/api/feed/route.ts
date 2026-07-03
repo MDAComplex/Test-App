@@ -8,7 +8,10 @@ export async function GET(request: NextRequest) {
   const excludeIds = excludeParam
     .split(",")
     .map((id) => id.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    // Cap the exclude list so the query string can't grow unbounded as a user
+    // scrolls forever; the last 200 seen ids are plenty to avoid repeats.
+    .slice(-200);
 
   const items = await getFeedBatch({
     userId: session?.user?.id ?? null,

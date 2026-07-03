@@ -6,6 +6,8 @@ import { toProductDTO } from "@/lib/products";
 import type { Prisma } from "@/generated/prisma/client";
 
 const SEARCH_LIMIT = 30;
+const MAX_QUERY_LEN = 100;
+const MAX_CATEGORY_LEN = 60;
 
 // GET /api/search?q=&category=
 // Case-insensitive contains match on name/description/tags (SQLite LIKE is
@@ -17,6 +19,11 @@ export async function GET(request: NextRequest) {
 
   const q = (request.nextUrl.searchParams.get("q") ?? "").trim();
   const category = (request.nextUrl.searchParams.get("category") ?? "").trim();
+
+  // Reject absurd input outright instead of running a pointless huge LIKE.
+  if (q.length > MAX_QUERY_LEN || category.length > MAX_CATEGORY_LEN) {
+    return NextResponse.json({ error: "query_too_long" }, { status: 400 });
+  }
 
   const where: Prisma.ProductWhereInput = { isActive: true };
   if (category) where.category = category;
