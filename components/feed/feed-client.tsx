@@ -185,6 +185,16 @@ export function FeedClient({ initialItems, totalCount }: FeedClientProps) {
     setCommentProductId(productId);
   }
 
+  // Keep the slide's comment-count badge in sync when a comment is added or
+  // removed in the drawer, so it doesn't desync until the next feed load.
+  function handleCommentCountChange(productId: string, delta: number) {
+    setItems((prev) =>
+      prev.map((p) =>
+        p.id === productId ? { ...p, commentCount: Math.max(0, p.commentCount + delta) } : p,
+      ),
+    );
+  }
+
   function handleDoubleTapWishlist(productId: string) {
     if (!wishlisted.has(productId)) {
       addToWishlist(productId);
@@ -250,6 +260,7 @@ export function FeedClient({ initialItems, totalCount }: FeedClientProps) {
           productId={commentProductId}
           isLoggedIn={status === "authenticated"}
           onClose={() => setCommentProductId(null)}
+          onCommentCountChange={handleCommentCountChange}
         />
       )}
 

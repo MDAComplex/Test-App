@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ProductDTO } from "@/lib/types";
 
 type ProductMediaProps = {
@@ -18,40 +18,58 @@ type ProductMediaProps = {
 //   no direct object-fit equivalent, so it's treated like "contain".
 export function ProductMedia({ product, isActive, shouldMount }: ProductMediaProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const isVideo = product.mediaType === "video" && Boolean(product.videoUrl);
+  // Feed slides are keyed by product id + index, so each product gets a fresh
+  // ProductMedia instance and this flag starts clean per product (no manual
+  // reset needed when the feed recycles).
+  const [videoFailed, setVideoFailed] = useState(false);
+
+  // Fall back to the image whenever there's no usable video source OR the
+  // video errored out while loading/playing.
+  const isVideo = product.mediaType === "video" && Boolean(product.videoUrl) && !videoFailed;
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
+    // Guarantee muted so browsers don't block autoplay (the `muted` attribute
+    // alone is unreliable in React).
+    video.muted = true;
     if (isActive) {
       video.currentTime = video.currentTime || 0;
       video.play().catch(() => {});
     } else {
       video.pause();
     }
-  }, [isActive]);
+    // Re-run when the video first mounts (shouldMount) as well as on activation,
+    // so a slide that scrolls into view autoplays reliably.
+  }, [isActive, shouldMount, isVideo]);
 
   if (!shouldMount) {
     return <div className="absolute inset-0 bg-black" />;
   }
 
+  const videoProps = {
+    ref: videoRef,
+    src: product.videoUrl ?? undefined,
+    poster: product.posterUrl ?? undefined,
+    muted: true,
+    loop: true,
+    playsInline: true,
+    preload: "metadata" as const,
+    onError: () => setVideoFailed(true),
+  };
+
   if (product.mediaFit === "cover") {
     return (
       <div className="absolute inset-0 bg-black">
         {isVideo ? (
-          <video
-            ref={videoRef}
-            src={product.videoUrl!}
-            poster={product.posterUrl ?? undefined}
-            muted
-            loop
-            playsInline
-            preload="metadata"
-            className="h-full w-full object-cover"
-          />
+          <video {...videoProps} className="h-full w-full object-cover" />
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={product.imageUrl} alt={product.name} className="h-full w-full object-cover" />
+          <img
+            src={product.imageUrl || product.posterUrl || ""}
+            alt={product.name}
+            className="h-full w-full object-cover"
+          />
         )}
       </div>
     );
@@ -68,19 +86,14 @@ export function ProductMedia({ product, isActive, shouldMount }: ProductMediaPro
           className="absolute inset-0 h-full w-full scale-125 object-cover blur-2xl brightness-50"
         />
         {isVideo ? (
-          <video
-            ref={videoRef}
-            src={product.videoUrl!}
-            poster={product.posterUrl ?? undefined}
-            muted
-            loop
-            playsInline
-            preload="metadata"
-            className="absolute inset-0 h-full w-full object-contain"
-          />
+          <video {...videoProps} className="absolute inset-0 h-full w-full object-contain" />
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={product.imageUrl} alt={product.name} className="absolute inset-0 h-full w-full object-contain" />
+          <img
+            src={product.imageUrl || product.posterUrl || ""}
+            alt={product.name}
+            className="absolute inset-0 h-full w-full object-contain"
+          />
         )}
       </div>
     );
@@ -90,19 +103,14 @@ export function ProductMedia({ product, isActive, shouldMount }: ProductMediaPro
   return (
     <div className="absolute inset-0 flex items-center justify-center bg-black">
       {isVideo ? (
-        <video
-          ref={videoRef}
-          src={product.videoUrl!}
-          poster={product.posterUrl ?? undefined}
-          muted
-          loop
-          playsInline
-          preload="metadata"
-          className="h-full w-full object-contain"
-        />
+        <video {...videoProps} className="h-full w-full object-contain" />
       ) : (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={product.imageUrl} alt={product.name} className="h-full w-full object-contain" />
+        <img
+          src={product.imageUrl || product.posterUrl || ""}
+          alt={product.name}
+          className="h-full w-full object-contain"
+        />
       )}
     </div>
   );

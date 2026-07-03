@@ -8,6 +8,9 @@ type CommentDrawerProps = {
   productId: string;
   isLoggedIn: boolean;
   onClose: () => void;
+  // Lets the underlying feed slide keep its comment-count badge in sync when
+  // the user adds/removes a comment here (delta of +1 / -1).
+  onCommentCountChange?: (productId: string, delta: number) => void;
 };
 
 const MAX_LEN = 500;
@@ -42,12 +45,13 @@ function timeAgo(iso: string): string {
   return days < 30 ? `vor ${days} ${days === 1 ? "Tag" : "Tagen"}` : new Date(iso).toLocaleDateString("de-DE");
 }
 
-export function CommentDrawer({ productId, isLoggedIn, onClose }: CommentDrawerProps) {
+export function CommentDrawer({ productId, isLoggedIn, onClose, onCommentCountChange }: CommentDrawerProps) {
   const [comments, setComments] = useState<CommentDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [content, setContent] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [visible, setVisible] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -91,6 +95,7 @@ export function CommentDrawer({ productId, isLoggedIn, onClose }: CommentDrawerP
     try {
       const res = await fetch(`/api/comments/${id}`, { method: "DELETE" });
       if (!res.ok) setComments(snap);
+      else onCommentCountChange?.(productId, -1);
     } catch {
       setComments(snap);
     }
@@ -101,19 +106,25 @@ export function CommentDrawer({ productId, isLoggedIn, onClose }: CommentDrawerP
     const trimmed = content.trim();
     if (!trimmed || trimmed.length > MAX_LEN || submitting) return;
     setSubmitting(true);
+    setError(null);
     try {
       const res = await fetch("/api/comments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ productId, content: trimmed }),
       });
-      const data = await res.json();
-      if (res.ok) {
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.comment) {
         setComments((prev) => [data.comment as CommentDTO, ...prev]);
         setContent("");
+        onCommentCountChange?.(productId, 1);
+      } else if (res.status === 429) {
+        setError("Zu viele Kommentare in kurzer Zeit. Bitte warte einen Moment.");
+      } else {
+        setError("Kommentar konnte nicht gesendet werden.");
       }
     } catch {
-      // ignore
+      setError("Kommentar konnte nicht gesendet werden.");
     } finally {
       setSubmitting(false);
     }
@@ -231,6 +242,7 @@ export function CommentDrawer({ productId, isLoggedIn, onClose }: CommentDrawerP
 
         {/* Input area */}
         <div className="border-t border-zinc-800/80 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          {error && <p className="mb-2 text-center text-xs font-medium text-red-400">{error}</p>}
           {isLoggedIn ? (
             <form onSubmit={submit} className="flex items-end gap-2">
               <textarea
