@@ -1,5 +1,8 @@
 "use client";
 
+import { useState } from "react";
+import { MediaUpload } from "@/components/admin/media-upload";
+
 type ProductFormValues = {
   name: string;
   description: string;
@@ -55,15 +58,50 @@ function Field({
   );
 }
 
+// Controlled text input variant, used for the media URL fields that the
+// MediaUpload widget also writes into.
+function ControlledField({
+  label,
+  name,
+  value,
+  onChange,
+  required,
+  placeholder,
+}: {
+  label: string;
+  name: string;
+  value: string;
+  onChange: (value: string) => void;
+  required?: boolean;
+  placeholder?: string;
+}) {
+  return (
+    <label className="flex flex-1 flex-col gap-1 text-sm">
+      {label}
+      <input
+        type="text"
+        name={name}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        required={required}
+        placeholder={placeholder}
+        className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-white outline-none focus:border-accent"
+      />
+    </label>
+  );
+}
+
 function Select({
   label,
   name,
-  defaultValue,
+  value,
+  onChange,
   options,
 }: {
   label: string;
   name: string;
-  defaultValue: string;
+  value: string;
+  onChange: (value: string) => void;
   options: string[];
 }) {
   return (
@@ -71,7 +109,8 @@ function Select({
       {label}
       <select
         name={name}
-        defaultValue={defaultValue}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
         className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-white outline-none focus:border-accent"
       >
         {options.map((option) => (
@@ -85,6 +124,21 @@ function Select({
 }
 
 export function ProductForm({ action, submitLabel, initial }: ProductFormProps) {
+  const [imageUrl, setImageUrl] = useState(initial?.imageUrl ?? "");
+  const [videoUrl, setVideoUrl] = useState(initial?.videoUrl ?? "");
+  const [posterUrl, setPosterUrl] = useState(initial?.posterUrl ?? "");
+  const [mediaType, setMediaType] = useState<"image" | "video">(initial?.mediaType ?? "image");
+
+  function handleUploaded(url: string, kind: "image" | "video") {
+    if (kind === "video") {
+      setVideoUrl(url);
+      // A freshly uploaded video should become the slide's primary media.
+      setMediaType("video");
+    } else {
+      setImageUrl(url);
+    }
+  }
+
   return (
     <form action={action} className="flex max-w-xl flex-col gap-3">
       <Field label="Name" name="name" defaultValue={initial?.name} required />
@@ -105,21 +159,36 @@ export function ProductForm({ action, submitLabel, initial }: ProductFormProps) 
         <Field label="Kategorie" name="category" defaultValue={initial?.category} required />
       </div>
 
-      <Field label="Bild-URL" name="imageUrl" defaultValue={initial?.imageUrl} required />
+      {/* Media upload widget — writes into the URL fields below. Manual URL
+          entry remains as a fallback. */}
+      <MediaUpload onUploaded={handleUploaded} imageUrl={imageUrl} videoUrl={videoUrl} />
+
+      <ControlledField label="Bild-URL" name="imageUrl" value={imageUrl} onChange={setImageUrl} required />
 
       <div className="flex gap-3">
-        <Field label="Video-URL (optional)" name="videoUrl" defaultValue={initial?.videoUrl ?? ""} />
-        <Field label="Poster-URL (optional)" name="posterUrl" defaultValue={initial?.posterUrl ?? ""} />
+        <ControlledField
+          label="Video-URL (optional)"
+          name="videoUrl"
+          value={videoUrl}
+          onChange={setVideoUrl}
+        />
+        <ControlledField
+          label="Poster-URL (optional)"
+          name="posterUrl"
+          value={posterUrl}
+          onChange={setPosterUrl}
+        />
       </div>
 
       <div className="flex gap-3">
-        <Select label="Medientyp" name="mediaType" defaultValue={initial?.mediaType ?? "image"} options={["image", "video"]} />
         <Select
-          label="Media-Fit"
-          name="mediaFit"
-          defaultValue={initial?.mediaFit ?? "hybrid"}
-          options={["cover", "hybrid", "contain", "auto"]}
+          label="Medientyp"
+          name="mediaType"
+          value={mediaType}
+          onChange={(v) => setMediaType(v as "image" | "video")}
+          options={["image", "video"]}
         />
+        <MediaFitSelect defaultValue={initial?.mediaFit ?? "hybrid"} />
       </div>
 
       <Field label="Affiliate-URL" name="affiliateUrl" defaultValue={initial?.affiliateUrl} required />
@@ -149,5 +218,20 @@ export function ProductForm({ action, submitLabel, initial }: ProductFormProps) 
         {submitLabel}
       </button>
     </form>
+  );
+}
+
+// Media-fit stays uncontrolled (upload never touches it), kept as its own
+// component so the controlled Select signature isn't forced onto it.
+function MediaFitSelect({ defaultValue }: { defaultValue: string }) {
+  const [value, setValue] = useState(defaultValue);
+  return (
+    <Select
+      label="Media-Fit"
+      name="mediaFit"
+      value={value}
+      onChange={setValue}
+      options={["cover", "hybrid", "contain", "auto"]}
+    />
   );
 }
