@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { safeJsonParse } from "@/lib/json";
 
 export async function GET() {
   const session = await auth();
@@ -33,9 +34,7 @@ export async function POST(request: NextRequest) {
 
   const userId = session.user.id;
   const existing = await prisma.userPreference.findUnique({ where: { userId } });
-  const categoryWeights: Record<string, number> = existing
-    ? JSON.parse(existing.categoryWeights)
-    : {};
+  const categoryWeights = safeJsonParse<Record<string, number>>(existing?.categoryWeights, {});
 
   // Strong explicit signal from onboarding selection.
   for (const category of categories) {

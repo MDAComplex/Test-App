@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { parseTags } from "@/lib/products";
+import { safeJsonParse } from "@/lib/json";
 
 type PreferenceSignalProduct = {
   category: string;
@@ -16,8 +17,8 @@ export async function recordPreferenceSignal(
   direction: 1 | -1,
 ) {
   const existing = await prisma.userPreference.findUnique({ where: { userId } });
-  const categoryWeights: Record<string, number> = existing ? JSON.parse(existing.categoryWeights) : {};
-  const tagWeights: Record<string, number> = existing ? JSON.parse(existing.tagWeights) : {};
+  const categoryWeights = safeJsonParse<Record<string, number>>(existing?.categoryWeights, {});
+  const tagWeights = safeJsonParse<Record<string, number>>(existing?.tagWeights, {});
 
   categoryWeights[product.category] = Math.max(0, (categoryWeights[product.category] ?? 0) + direction);
   for (const tag of parseTags(product.tags)) {
